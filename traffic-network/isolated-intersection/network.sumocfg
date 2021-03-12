@@ -1,0 +1,9 @@
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+    <input>
+        <additional-files value="type.xml" />
+    </input>
+
+    <processing>
+        <ignore-junction-blocker value="1" />
+    </processing>
+</configuration>

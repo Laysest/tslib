@@ -1,0 +1,4 @@
+<additional>
+    <vType id="moped" vClass="moped" minGap="0.5" latAlignment="compact" departSpeed="5"/>
+    <vType id="passenger" vClass="passenger" latAlignment="center" departSpeed="5"/>
+</additional>

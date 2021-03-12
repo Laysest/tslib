@@ -1,0 +1,18 @@
+<routes>
+    <route id="routeSN" edges="StoC CtoN"/>
+    <route id="routeNS" edges="NtoC CtoS"/>
+    <route id="routeWE" edges="WtoC CtoE"/>
+    <route id="routeEW" edges="EtoC CtoW"/>
+
+    <flow id="03A" type="passenger" begin="0" end="600" departSpeed="5" probability="0.1" route="routeSN" departLane="random"/>
+    <flow id="03B" type="moped" begin="0" end="600" departSpeed="5" probability="0.4" route="routeSN" departLane="random"/>
+
+    <flow id="04A" type="passenger" begin="0" end="600" departSpeed="5" probability="0.1" route="routeNS" departLane="random"/>
+    <flow id="04B" type="moped" begin="0" end="600" departSpeed="5" probability="0.4" route="routeNS" departLane="random"/>
+
+    <flow id="05A" type="passenger" begin="701" end="1200" departSpeed="5" probability="0.1" route="routeWE" departLane="random"/>
+    <flow id="05B" type="moped" begin="701" end="1200" departSpeed="5" probability="0.4" route="routeWE" departLane="random"/>
+
+    <flow id="06A" type="passenger" begin="701" end="1200" departSpeed="5" probability="0.1" route="routeEW" departLane="random"/>
+    <flow id="06B" type="moped" begin="701" end="1200" departSpeed="5" probability="0.4" route="routeEW" departLane="random"/>
+</routes>
