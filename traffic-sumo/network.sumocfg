@@ -1,9 +1,8 @@
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
-    <input>
-        <additional-files value="type.xml" />
-    </input>
-
     <processing>
+        <time-to-teleport value="-1" />
         <ignore-junction-blocker value="1" />
+        <lateral-resolution value="0.6"/>
+        <waiting-time-memory value="500" />
     </processing>
 </configuration>
