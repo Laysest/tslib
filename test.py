@@ -5,7 +5,7 @@ config = {
     'veh_type': 'type.xml',
     'route': 'isolated.0.route.xml',
     'end': 3600,
-    'gui': False
+    'gui': True
 }
 
 

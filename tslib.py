@@ -1,4 +1,3 @@
-import traci
 from environment import Environment
 
 class TSLib:

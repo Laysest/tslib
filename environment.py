@@ -1,5 +1,11 @@
 import traci
 from traffic_light import TrafficLight
+import time
+import sumolib
+from sumolib.miscutils import getFreeSocketPort
+
+MAX_NUMBER_OF_INTERSECTIONS = 2
+
 
 class Environment():
     def __init__(self, config):
@@ -15,7 +21,6 @@ class Environment():
         """
         self.vehicles = []
         self.controllers = []
-        self.trafficLights = [TrafficLight('node1')]
         self.config = config
 
     def update(self):
@@ -34,7 +39,8 @@ class Environment():
                       "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
         sumoCmd.extend(sumoConfig)
         traci.start(sumoCmd)
-        
+        self.trafficLights = [TrafficLight('node1', traci=traci)]
+
         while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
             traci.simulationStep()
             for i in range(len(self.trafficLights)):
