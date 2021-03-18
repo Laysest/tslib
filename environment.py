@@ -39,7 +39,8 @@ class Environment():
                       "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
         sumoCmd.extend(sumoConfig)
         traci.start(sumoCmd)
-        self.trafficLights = [TrafficLight('node1', traci=traci)]
+        self.trafficLights = [TrafficLight('node1', traci=traci), TrafficLight('node2', traci=traci), 
+                                TrafficLight('node3', traci=traci), TrafficLight('node4', traci=traci)]
 
         while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
             traci.simulationStep()
