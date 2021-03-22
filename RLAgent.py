@@ -1,5 +1,6 @@
 from controller import Controller
 from collections import deque
+import numpy as np
 
 MEMORY_SIZE = 2048
 
@@ -18,14 +19,15 @@ class Memory():
 
 class RLAgent(Controller):
     def __init__(self):
-        self.model = None
+        self.model = self.build_model()
         self.experience_memory = Memory(MEMORY_SIZE)
-    
+
     def build_model(self):
-        pass
+        print("Must <<overwrite>> \"build_mode\" function in RL-based methods")
+        return None
 
     def replay(self):
         pass
 
     def make_action(self, state):
-        return self.model.predict(state)
+        return np.argmax(self.model.predict(np.array([state]))[0])

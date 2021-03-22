@@ -1,9 +1,9 @@
 from SOTL import SOTL
-
+from SimpleRL import SimpleRL
 MAX_INT = 9999999
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='SOTL', yellowDuration=3, traci=None, cycleControl=5):
+    def __init__(self, tfID, algorithm='SimpleRL', yellowDuration=3, traci=None, cycleControl=5):
         self.id = tfID
         self.controlAlgorithm = algorithm
         self.yellowDuration = yellowDuration
@@ -17,6 +17,8 @@ class TrafficLight:
         # Create controller based on the algorithm configed
         if self.controlAlgorithm == 'SOTL':
             self.controller = SOTL()
+        elif self.controlAlgorithm == 'SimpleRL':
+            self.controller = SimpleRL()
 
         self.currentPhase = self.traci.trafficlight.getPhase(tfID)
         self.controlActions = []
@@ -44,6 +46,25 @@ class TrafficLight:
                 numVehOrdered.append(self.traci.lane.getLastStepVehicleNumber(lane))
             
             return currentLogic, numVehOrdered
+
+        elif self.controlAlgorithm == 'SimpleRL':
+            allLogic = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
+            currentLogic = allLogic.getPhases()[allLogic.currentPhaseIndex].state
+            numVehOrdered = []
+            for lane in self.lanes:
+                numVehOrdered.append(self.traci.lane.getLastStepVehicleNumber(lane))
+
+            numberVehOnGreenLane = 0
+            numberVehOnRedLane = 0
+            for i in range(len(numVehOrdered)):
+                if currentLogic[i] in ['r', 'R']:
+                    numberVehOnRedLane += numVehOrdered[i]
+                elif currentLogic[i] in ['g', 'G']:
+                    numberVehOnGreenLane += numVehOrdered[i]
+                else:
+                    print("Error in get_state of SimpleRL")
+                    
+            return [numberVehOnGreenLane, numberVehOnRedLane]
 
     def update(self):
     #   if len = 0 => no action in queue:

@@ -3,9 +3,10 @@ from traffic_light import TrafficLight
 import time
 import sumolib
 from sumolib.miscutils import getFreeSocketPort
+import numpy as np
+
 
 MAX_NUMBER_OF_INTERSECTIONS = 2
-
 
 class Environment():
     def __init__(self, config):
