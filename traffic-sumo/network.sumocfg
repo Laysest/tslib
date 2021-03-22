@@ -5,4 +5,6 @@
         <lateral-resolution value="0.6"/>
         <waiting-time-memory value="500" />
     </processing>
+    <duration-log.statistics value="true"/>
+    <tripinfo-output.write-unfinished value="true"/>
 </configuration>

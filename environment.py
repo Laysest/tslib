@@ -6,7 +6,7 @@ from sumolib.miscutils import getFreeSocketPort
 import numpy as np
 
 
-MAX_NUMBER_OF_INTERSECTIONS = 2
+INTERVAL = 100
 
 class Environment():
     def __init__(self, config):
@@ -27,7 +27,7 @@ class Environment():
     def update(self):
         pass
 
-    def run(self):
+    def run(self, isTrain=False):
         """
             To run a simulation based on the configurate
         """
@@ -39,16 +39,29 @@ class Environment():
         sumoConfig = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
                       "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
         sumoCmd.extend(sumoConfig)
-        traci.start(sumoCmd)
-        self.trafficLights = [TrafficLight('node1', traci=traci), TrafficLight('node2', traci=traci), 
-                                TrafficLight('node3', traci=traci), TrafficLight('node4', traci=traci)]
 
-        while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-            traci.simulationStep()
-            for i in range(len(self.trafficLights)):
-                self.trafficLights[i].update()
-        self.close()
-
+        if isTrain:
+            for e in range(50):
+                print("Episode: %d" % e)
+                traci.start(sumoCmd)
+                # create trafficLights just once
+                if e == 0:
+                    self.trafficLights = [TrafficLight('node1', traci=traci)]
+                    # , TrafficLight('node2', traci=traci), 
+                    #    TrafficLight('node3', traci=traci), TrafficLight('node4', traci=traci)
+                count = 0
+                while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
+                    traci.simulationStep()
+                    for i in range(len(self.trafficLights)):
+                        self.trafficLights[i].update(isTrain=isTrain)
+                        if count >= INTERVAL:
+                            self.trafficLights[i].replay()   
+                    count += 1
+                    if count >= INTERVAL:
+                        count = 0
+                self.close()
+                print("-------------------------")
+                print("")
     def close(self):
         """
             close simulation

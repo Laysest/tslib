@@ -15,5 +15,5 @@ class TSLib:
         self.env = Environment(config)
 
     # call to run the environment
-    def run(self):
-        self.env.run()
+    def run(self, isTrain=False):
+        self.env.run(isTrain=isTrain)

@@ -1,6 +1,9 @@
 from SOTL import SOTL
 from SimpleRL import SimpleRL
+import random
+
 MAX_INT = 9999999
+EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
     def __init__(self, tfID, algorithm='SimpleRL', yellowDuration=3, traci=None, cycleControl=5):
@@ -19,11 +22,14 @@ class TrafficLight:
             self.controller = SOTL()
         elif self.controlAlgorithm == 'SimpleRL':
             self.controller = SimpleRL()
+        else:
+            print("Must implement method named %s" % algorithm)
 
         self.currentPhase = self.traci.trafficlight.getPhase(tfID)
         self.controlActions = []
         self.set_logic()
-    
+        self.lastAction, self.lastState = None, None
+
     def set_logic(self):
         """
             ### To do ###
@@ -63,10 +69,18 @@ class TrafficLight:
                     numberVehOnGreenLane += numVehOrdered[i]
                 else:
                     print("Error in get_state of SimpleRL")
-                    
+                    print(currentLogic)
+
             return [numberVehOnGreenLane, numberVehOnRedLane]
 
-    def update(self):
+    def compute_reward(self):
+        if self.controlAlgorithm == 'SimpleRL':
+            reward = 0
+            for lane in self.lanes:
+                reward -= self.traci.lane.getLastStepHaltingNumber(lane)
+            return reward
+
+    def update(self, isTrain=False):
     #   if len = 0 => no action in queue:
     #       get action by state
     #       if action = True:
@@ -78,9 +92,25 @@ class TrafficLight:
     #           if time length == 0:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase => change phase
-        if len(self.controlActions) <= 0:
-            action = self.controller.make_action(self.get_state())
-            if action == True:
+        if len(self.controlActions) <= 0: 
+            curState = self.get_state()
+            # if is training:
+            #     check to explore
+            if isTrain:
+                if random.uniform(0, 1) <= EXPLORE_PROBABILITY:
+                    action = random.randint(0, 1)
+                else:
+                    action = self.controller.make_action(curState)
+                # log lastState, lastAction, reward, curState
+                if self.lastState != None and self.lastAction != None:
+                    # compute reward
+                    reward = self.compute_reward()
+                    self.controller.experienceMemory.add([self.lastState, self.lastAction, reward, curState])
+                self.lastState, self.lastAction = curState, action
+            else:
+                action = self.controller.make_action(curState)
+
+            if action == 1:
                 if self.currentPhase < 3:
                     self.traci.trafficlight.setPhase(self.id, self.currentPhase + 1)
                 else:
@@ -104,3 +134,6 @@ class TrafficLight:
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
         self.currentPhase = self.traci.trafficlight.getPhase(self.id)
+
+    def replay(self):
+        self.controller.replay()
