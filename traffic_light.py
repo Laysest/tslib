@@ -131,13 +131,13 @@ class TrafficLight:
             self.control_actions[0]['length'] -= 1
             if self.control_actions[0]['length'] <= 0:
                 self.control_actions.pop(0)
-                # if len(self.control_actions) > 0:
-                current_phase_ = self.traci.trafficlight.getPhase(self.id)
-                if current_phase_ < 3:
-                    self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-                else:
-                    self.traci.trafficlight.setPhase(self.id, 0)
-                self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+                if len(self.control_actions) > 0:
+                    current_phase_ = self.traci.trafficlight.getPhase(self.id)
+                    if current_phase_ < 3:
+                        self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+                    else:
+                        self.traci.trafficlight.setPhase(self.id, 0)
+                    self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
         self.current_phase = self.traci.trafficlight.getPhase(self.id)
 
