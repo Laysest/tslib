@@ -120,7 +120,7 @@ class TrafficLight:
                     self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
                 else:
-                    print("error := change at yellow phase ??")
+                    print("******* error := change at yellow phase ??? ")
 
                 self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
                                             {'type': 'red_green_phase', 'length': self.cycle_control}])
@@ -138,7 +138,7 @@ class TrafficLight:
                     elif current_phase_ == 3:
                         self.traci.trafficlight.setPhase(self.id, 0)
                     else:
-                        print("error in control: current_phase: %d, control_actions: %s" % (current_phase_, self.control_actions))
+                        print("******* error in control: current_phase: %d, control_actions: %s" % (current_phase_, self.control_actions))
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
         self.current_phase = self.traci.trafficlight.getPhase(self.id)
