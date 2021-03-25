@@ -91,10 +91,11 @@ class TrafficLight:
     #           if time length == 0:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
-        # all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
 
+        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
         print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
+
         if len(self.control_actions) <= 0: 
             cur_state = self.getState()
             # if is training:
