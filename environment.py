@@ -50,6 +50,9 @@ class Environment():
                                             TrafficLight('node2', traci=traci), 
                                             TrafficLight('node3', traci=traci), 
                                             TrafficLight('node4', traci=traci) ]
+                else:
+                    for i in range(len(self.traffic_lights)):
+                        self.traffic_lights[i].reset()
                 count = 0
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     traci.simulationStep()

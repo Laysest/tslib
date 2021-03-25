@@ -26,10 +26,7 @@ class TrafficLight:
         else:
             print("Must implement method named %s" % algorithm)
 
-        self.current_phase = self.traci.trafficlight.getPhase(tfID)
-        self.control_actions = []
-        self.setLogic()
-        self.last_action, self.last_state = None, None
+        self.reset()
 
     def setLogic(self):
         """
@@ -39,6 +36,12 @@ class TrafficLight:
         """
         self.traci.trafficlight.setPhase(self.id, 0)
         self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+    
+    def reset(self):
+        self.control_actions = []
+        self.current_phase = self.traci.trafficlight.getPhase(tfID)
+        self.setLogic()
+        self.last_action, self.last_state = None, None
 
     def getState(self):
         """
@@ -93,9 +96,9 @@ class TrafficLight:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
 
-        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
+        # all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        # print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
 
         if len(self.control_actions) <= 0: 
             cur_state = self.getState()
