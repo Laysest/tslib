@@ -39,7 +39,7 @@ class TrafficLight:
     
     def reset(self):
         self.control_actions = []
-        self.current_phase = self.traci.trafficlight.getPhase(tfID)
+        self.current_phase = self.traci.trafficlight.getPhase(self.id)
         self.setLogic()
         self.last_action, self.last_state = None, None
 
