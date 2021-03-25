@@ -1,6 +1,7 @@
 from SOTL import SOTL
 from SimpleRL import SimpleRL
 import random
+import sys
 
 MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
@@ -92,9 +93,9 @@ class TrafficLight:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
 
-        # all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        # print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
+        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
 
         if len(self.control_actions) <= 0: 
             cur_state = self.getState()
@@ -121,6 +122,7 @@ class TrafficLight:
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
                 else:
                     print("******* error := change at yellow phase ??? ")
+                    sys.exit()
 
                 self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
                                             {'type': 'red_green_phase', 'length': self.cycle_control}])
@@ -139,6 +141,8 @@ class TrafficLight:
                         self.traci.trafficlight.setPhase(self.id, 0)
                     else:
                         print("******* error in control: current_phase: %d, control_actions: %s" % (current_phase_, self.control_actions))
+                        sys.exit()
+
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
         self.current_phase = self.traci.trafficlight.getPhase(self.id)
