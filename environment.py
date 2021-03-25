@@ -6,7 +6,7 @@ from sumolib.miscutils import getFreeSocketPort
 import numpy as np
 
 
-INTERVAL = 100
+INTERVAL = 50
 
 class Environment():
     def __init__(self, config):
@@ -46,22 +46,36 @@ class Environment():
                 traci.start(sumoCmd)
                 # create trafficLights just once
                 if e == 0:
-                    self.trafficLights = [TrafficLight('node1', traci=traci)]
-                    # , TrafficLight('node2', traci=traci), 
-                    #    TrafficLight('node3', traci=traci), TrafficLight('node4', traci=traci)
+                    self.trafficLights = [  TrafficLight('node1', traci=traci), 
+                                            TrafficLight('node2', traci=traci), 
+                                            TrafficLight('node3', traci=traci), 
+                                            TrafficLight('node4', traci=traci) ]
                 count = 0
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     traci.simulationStep()
                     for i in range(len(self.trafficLights)):
                         self.trafficLights[i].update(isTrain=isTrain)
                         if count >= INTERVAL:
-                            self.trafficLights[i].replay()   
+                            self.trafficLights[i].replay()
                     count += 1
                     if count >= INTERVAL:
                         count = 0
                 self.close()
                 print("-------------------------")
                 print("")
+
+        else:
+            traci.start(sumoCmd)
+            self.trafficLights = [  TrafficLight('node1', traci=traci), 
+                                    TrafficLight('node2', traci=traci), 
+                                    TrafficLight('node3', traci=traci), 
+                                    TrafficLight('node4', traci=traci) ]
+            while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
+                traci.simulationStep()
+                for i in range(len(self.trafficLights)):
+                    self.trafficLights[i].update(isTrain=isTrain)
+            self.close()
+
     def close(self):
         """
             close simulation
@@ -69,7 +83,7 @@ class Environment():
         self.evaluate()
         traci.close()
 
-    def evaluate(self):  
+    def evaluate(self):
         """
            Log results of this episode 
         """

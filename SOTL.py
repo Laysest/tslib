@@ -17,5 +17,5 @@ class SOTL(Controller):
             else:
                 print(state, "Error")
         if (numberVehOnGreenLane < MIN_GREEN_VEHICLE and numberVehOnRedLane > MAX_RED_VEHICLE) or (numberVehOnGreenLane == 0 and numberVehOnRedLane > 0):
-            return True
-        return False
+            return 1
+        return 0

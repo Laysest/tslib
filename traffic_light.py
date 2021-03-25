@@ -68,8 +68,9 @@ class TrafficLight:
                 elif currentLogic[i] in ['g', 'G']:
                     numberVehOnGreenLane += numVehOrdered[i]
                 else:
-                    print("Error in get_state of SimpleRL")
-                    print(currentLogic)
+                    print("Error in get_state in case of SimpleRL")
+                    print("step: %d, " % self.traci.simulation.getTime() + str(currentLogic))
+                    print(self.controlActions)
 
             return [numberVehOnGreenLane, numberVehOnRedLane]
 
@@ -92,6 +93,11 @@ class TrafficLight:
     #           if time length == 0:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase => change phase
+        allLogic = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
+        currentLogic = allLogic.getPhases()[allLogic.currentPhaseIndex].state
+        print("step: %d, " % self.traci.simulation.getTime() + str(currentLogic))
+        print(self.controlActions)
+
         if len(self.controlActions) <= 0: 
             curState = self.get_state()
             # if is training:
@@ -119,7 +125,7 @@ class TrafficLight:
 
                 self.controlActions.extend([{'type': 'yellow_phase', 'length': self.yellowDuration},
                                             {'type': 'red_green_phase', 'length': self.cycleControl}])
-            else:
+            else:   
                 self.controlActions.append({'type': 'red_green_phase', 'length': self.cycleControl})
         
         if len(self.controlActions) > 0:
