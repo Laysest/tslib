@@ -58,11 +58,9 @@ class Environment():
                     traci.simulationStep()
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].update(is_train=is_train)
-                        if count >= INTERVAL:
+                        if count % INTERVAL == 0:
                             self.traffic_lights[i].replay()
                     count += 1
-                    if count >= INTERVAL:
-                        count = 0
                 self.close()
                 print("-------------------------")
                 print("")

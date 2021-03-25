@@ -1,6 +1,7 @@
 from controller import Controller
 from collections import deque
 import numpy as np
+import random
 
 MEMORY_SIZE = 2048
 BATCH_SIZE = 64
