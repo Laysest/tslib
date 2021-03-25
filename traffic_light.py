@@ -68,7 +68,7 @@ class TrafficLight:
                     number_veh_on_green_lanes += num_veh_ordered[i]
                 else:
                     print("Error in getState in case of SimpleRL")
-                    print("step: %d, id: %s, current_logic: %s, actions: %s" % (self.traci.simulation.getTime(), self.id, str(current_logic), str(self.control_actions))
+                    print("step: %d, id: %s, current_logic: %s, actions: %s" % (self.traci.simulation.getTime(), self.id, str(current_logic), str(self.control_actions)))
 
             return [number_veh_on_green_lanes, number_veh_on_red_lanes]
 
