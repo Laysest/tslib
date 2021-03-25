@@ -27,36 +27,36 @@ class Environment():
     def update(self):
         pass
 
-    def run(self, isTrain=False):
+    def run(self, is_train=False):
         """
             To run a simulation based on the configurate
         """
         if self.config["gui"]:
-            sumoCmd = ["/usr/bin/sumo-gui"]
+            sumo_cmd = ["/usr/bin/sumo-gui"]
         else:
-            sumoCmd = ["/usr/bin/sumo"]
+            sumo_cmd = ["/usr/bin/sumo"]
 
-        sumoConfig = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
+        sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
                       "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
-        sumoCmd.extend(sumoConfig)
+        sumo_cmd.extend(sumo_config)
 
-        if isTrain:
+        if is_train:
             for e in range(50):
                 print("Episode: %d" % e)
-                traci.start(sumoCmd)
-                # create trafficLights just once
+                traci.start(sumo_cmd)
+                # create traffic_lights just once
                 if e == 0:
-                    self.trafficLights = [  TrafficLight('node1', traci=traci), 
+                    self.traffic_lights = [  TrafficLight('node1', traci=traci), 
                                             TrafficLight('node2', traci=traci), 
                                             TrafficLight('node3', traci=traci), 
                                             TrafficLight('node4', traci=traci) ]
                 count = 0
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     traci.simulationStep()
-                    for i in range(len(self.trafficLights)):
-                        self.trafficLights[i].update(isTrain=isTrain)
+                    for i in range(len(self.traffic_lights)):
+                        self.traffic_lights[i].update(is_train=is_train)
                         if count >= INTERVAL:
-                            self.trafficLights[i].replay()
+                            self.traffic_lights[i].replay()
                     count += 1
                     if count >= INTERVAL:
                         count = 0
@@ -65,15 +65,15 @@ class Environment():
                 print("")
 
         else:
-            traci.start(sumoCmd)
-            self.trafficLights = [  TrafficLight('node1', traci=traci), 
+            traci.start(sumo_cmd)
+            self.traffic_lights = [  TrafficLight('node1', traci=traci), 
                                     TrafficLight('node2', traci=traci), 
                                     TrafficLight('node3', traci=traci), 
                                     TrafficLight('node4', traci=traci) ]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()
-                for i in range(len(self.trafficLights)):
-                    self.trafficLights[i].update(isTrain=isTrain)
+                for i in range(len(self.traffic_lights)):
+                    self.traffic_lights[i].update(is_train=is_train)
             self.close()
 
     def close(self):

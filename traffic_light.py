@@ -6,82 +6,81 @@ MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='SimpleRL', yellowDuration=3, traci=None, cycleControl=5):
+    def __init__(self, tfID, algorithm='SimpleRL', yellow_duration=3, traci=None, cycle_control=5):
         self.id = tfID
-        self.controlAlgorithm = algorithm
-        self.yellowDuration = yellowDuration
-        self.controlAlgorithm = algorithm
+        self.control_algorithm = algorithm
+        self.yellow_duration = yellow_duration
+        self.control_algorithm = algorithm
         self.traci = traci
-        self.cycleControl = 5
+        self.cycle_control = 5
         # traci.setOrder(2)
 
         self.lanes = self.traci.trafficlight.getControlledLanes(tfID) # check
         # self.lanes = []
         # Create controller based on the algorithm configed
-        if self.controlAlgorithm == 'SOTL':
+        if self.control_algorithm == 'SOTL':
             self.controller = SOTL()
-        elif self.controlAlgorithm == 'SimpleRL':
+        elif self.control_algorithm == 'SimpleRL':
             self.controller = SimpleRL()
         else:
             print("Must implement method named %s" % algorithm)
 
-        self.currentPhase = self.traci.trafficlight.getPhase(tfID)
-        self.controlActions = []
-        self.set_logic()
-        self.lastAction, self.lastState = None, None
+        self.current_phase = self.traci.trafficlight.getPhase(tfID)
+        self.control_actions = []
+        self.setLogic()
+        self.last_action, self.last_state = None, None
 
-    def set_logic(self):
+    def setLogic(self):
         """
             ### To do ###
             Set logic program for the traffic light
             Restart the logic at phase 0
         """
-
         self.traci.trafficlight.setPhase(self.id, 0)
         self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
-    def get_state(self):
+    def getState(self):
         """
             return the current state of the intersection, must depend on the control algorithm
         """
-        if self.controlAlgorithm == 'SOTL':
-            allLogic = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
-            currentLogic = allLogic.getPhases()[allLogic.currentPhaseIndex].state
-            numVehOrdered = []
+        if self.control_algorithm == 'SOTL':
+            all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
+            current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+            num_veh_ordered = []
             for lane in self.lanes:
-                numVehOrdered.append(self.traci.lane.getLastStepVehicleNumber(lane))
+                num_veh_ordered.append(self.traci.lane.getLastStepVehicleNumber(lane))
             
-            return currentLogic, numVehOrdered
+            return current_logic, num_veh_ordered
 
-        elif self.controlAlgorithm == 'SimpleRL':
-            allLogic = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
-            currentLogic = allLogic.getPhases()[allLogic.currentPhaseIndex].state
-            numVehOrdered = []
+        elif self.control_algorithm == 'SimpleRL':
+            all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+            current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+            num_veh_ordered = []
             for lane in self.lanes:
-                numVehOrdered.append(self.traci.lane.getLastStepVehicleNumber(lane))
+                num_veh_ordered.append(self.traci.lane.getLastStepVehicleNumber(lane))
 
-            numberVehOnGreenLane = 0
-            numberVehOnRedLane = 0
-            for i in range(len(numVehOrdered)):
-                if currentLogic[i] in ['r', 'R']:
-                    numberVehOnRedLane += numVehOrdered[i]
-                elif currentLogic[i] in ['g', 'G']:
-                    numberVehOnGreenLane += numVehOrdered[i]
+            number_veh_on_green_lanes = 0
+            number_veh_on_red_lanes = 0
+            for i in range(len(num_veh_ordered)):
+                if current_logic[i] in ['r', 'R']:
+                    number_veh_on_red_lanes += num_veh_ordered[i]
+                elif current_logic[i] in ['g', 'G']:
+                    number_veh_on_green_lanes += num_veh_ordered[i]
                 else:
-                    print("Error in get_state in case of SimpleRL")
-                    print("step: %d, " % self.traci.simulation.getTime() + str(currentLogic))
-                    print(self.controlActions)
+                    print("Error in getState in case of SimpleRL")
+                    print("step: %d, " % self.traci.simulation.getTime() + str(current_logic))
+                    print(self.control_actions)
 
-            return [numberVehOnGreenLane, numberVehOnRedLane]
+            return [number_veh_on_green_lanes, number_veh_on_red_lanes]
 
-    def compute_reward(self):
-        if self.controlAlgorithm == 'SimpleRL':
+    def computeReward(self):
+        if self.control_algorithm == 'SimpleRL':
             reward = 0
             for lane in self.lanes:
                 reward -= self.traci.lane.getLastStepHaltingNumber(lane)
             return reward
 
-    def update(self, isTrain=False):
+    def update(self, is_train=False):
     #   if len = 0 => no action in queue:
     #       get action by state
     #       if action = True:
@@ -93,53 +92,54 @@ class TrafficLight:
     #           if time length == 0:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase => change phase
-        allLogic = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
-        currentLogic = allLogic.getPhases()[allLogic.currentPhaseIndex].state
-        print("step: %d, " % self.traci.simulation.getTime() + str(currentLogic))
-        print(self.controlActions)
+        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
 
-        if len(self.controlActions) <= 0: 
-            curState = self.get_state()
+        print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
+        if len(self.control_actions) <= 0: 
+            cur_state = self.getState()
             # if is training:
             #     check to explore
-            if isTrain:
+            if is_train:
                 if random.uniform(0, 1) <= EXPLORE_PROBABILITY:
                     action = random.randint(0, 1)
                 else:
-                    action = self.controller.make_action(curState)
-                # log lastState, lastAction, reward, curState
-                if self.lastState != None and self.lastAction != None:
+                    action = self.controller.makeAction(cur_state)
+                # log last_state, last_action, reward, cur_state
+                if self.last_state != None and self.last_action != None:
                     # compute reward
-                    reward = self.compute_reward()
-                    self.controller.experienceMemory.add([self.lastState, self.lastAction, reward, curState])
-                self.lastState, self.lastAction = curState, action
+                    reward = self.computeReward()
+                    self.controller.exp_memory.add([self.last_state, self.last_action, reward, cur_state])
+                self.last_state, self.last_action = cur_state, action
             else:
-                action = self.controller.make_action(curState)
+                action = self.controller.makeAction(cur_state)
 
             if action == 1:
-                if self.currentPhase < 3:
-                    self.traci.trafficlight.setPhase(self.id, self.currentPhase + 1)
+                current_phase_ = self.traci.trafficlight.getPhase(self.id)
+                if current_phase_ < 3:
+                    self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+                    self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
                 else:
-                    self.traci.trafficlight.setPhase(self.id, 0)
-                self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+                    print("error := change at yellow phase ??")
 
-                self.controlActions.extend([{'type': 'yellow_phase', 'length': self.yellowDuration},
-                                            {'type': 'red_green_phase', 'length': self.cycleControl}])
+                self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
+                                            {'type': 'red_green_phase', 'length': self.cycle_control}])
             else:   
-                self.controlActions.append({'type': 'red_green_phase', 'length': self.cycleControl})
+                self.control_actions.append({'type': 'red_green_phase', 'length': self.cycle_control})
         
-        if len(self.controlActions) > 0:
-            self.controlActions[0]['length'] -= 1
-            if self.controlActions[0]['length'] <= 0:
-                self.controlActions.pop(0)
-                if len(self.controlActions) > 0:
-                    if self.currentPhase < 3:
-                        self.traci.trafficlight.setPhase(self.id, self.currentPhase + 1)
+        if len(self.control_actions) > 0:
+            self.control_actions[0]['length'] -= 1
+            if self.control_actions[0]['length'] <= 0:
+                self.control_actions.pop(0)
+                if len(self.control_actions) > 0:
+                    current_phase_ = self.traci.trafficlight.getPhase(self.id)
+                    if current_phase_ < 3:
+                        self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
                     else:
                         self.traci.trafficlight.setPhase(self.id, 0)
                     self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
-        self.currentPhase = self.traci.trafficlight.getPhase(self.id)
+        self.current_phase = self.traci.trafficlight.getPhase(self.id)
 
     def replay(self):
         self.controller.replay()

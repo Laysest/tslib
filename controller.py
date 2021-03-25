@@ -2,5 +2,5 @@ class Controller:
     def __init__(self):
         pass
 
-    def make_action(self, state):
+    def makeAction(self, state):
         pass

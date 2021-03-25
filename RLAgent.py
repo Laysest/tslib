@@ -21,17 +21,17 @@ class Memory():
 
 class RLAgent(Controller):
     def __init__(self):
-        self.model = self.build_model()
-        self.experienceMemory = Memory(MEMORY_SIZE)
+        self.model = self.buildModel()
+        self.exp_memory = Memory(MEMORY_SIZE)
 
-    def build_model(self):
+    def buildModel(self):
         print("Must <<overwrite>> \"build_mode\" function in RL-based methods")
         return None
 
     def replay(self):
-        if self.experienceMemory.len() < BATCH_SIZE:
+        if self.exp_memory.len() < BATCH_SIZE:
             return
-        minibatch =  self.experienceMemory.sample(BATCH_SIZE)    
+        minibatch =  self.exp_memory.sample(BATCH_SIZE)    
         batch_states = []
         batch_targets = []
         for state_, action_, reward_, next_state_ in minibatch:
@@ -45,5 +45,5 @@ class RLAgent(Controller):
         
         self.model.fit(np.array(batch_states), np.array(batch_targets), epochs=EPOCHS, shuffle=False, verbose=0, validation_split=0.3)
 
-    def make_action(self, state):
+    def makeAction(self, state):
         return np.argmax(self.model.predict(np.array([state]))[0])

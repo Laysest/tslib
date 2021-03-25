@@ -7,7 +7,7 @@ ACTION_SPACE = 2
 STATE_SPACE = 2
 
 class SimpleRL(RLAgent):
-    def build_model(self):
+    def buildModel(self):
         model = Sequential()
         model.add(Dense(16, input_dim=STATE_SPACE))
         model.add(Activation('relu'))
