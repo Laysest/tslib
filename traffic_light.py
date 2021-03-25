@@ -92,10 +92,10 @@ class TrafficLight:
     #           if time length == 0:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase => change phase
-        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        # all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
 
-        print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
+        # print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
         if len(self.control_actions) <= 0: 
             cur_state = self.getState()
             # if is training:
@@ -131,13 +131,13 @@ class TrafficLight:
             self.control_actions[0]['length'] -= 1
             if self.control_actions[0]['length'] <= 0:
                 self.control_actions.pop(0)
-                if len(self.control_actions) > 0:
-                    current_phase_ = self.traci.trafficlight.getPhase(self.id)
-                    if current_phase_ < 3:
-                        self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-                    else:
-                        self.traci.trafficlight.setPhase(self.id, 0)
-                    self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+                # if len(self.control_actions) > 0:
+                current_phase_ = self.traci.trafficlight.getPhase(self.id)
+                if current_phase_ < 3:
+                    self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+                else:
+                    self.traci.trafficlight.setPhase(self.id, 0)
+                self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
         self.current_phase = self.traci.trafficlight.getPhase(self.id)
 
