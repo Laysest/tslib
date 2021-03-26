@@ -4,10 +4,10 @@ config = {
     'net': '4x1-two-way.net.xml',
     'veh_type': 'type.xml',
     'route': '4x1-two-way.light.route.xml',
-    'end': 3600,
-    'gui': True
+    'end': 2000,
+    'gui': False
 }
 
 
 sim = TSLib(config)
-sim.run()
+sim.run(is_train=True)

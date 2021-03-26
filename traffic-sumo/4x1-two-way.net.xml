@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2020年07月17日 15時41分37秒 by Eclipse SUMO netedit Version 1.2.0
+<!-- generated on Mon 22 Mar 2021 10:39:56 PM +07 by Eclipse SUMO netedit Version 1.8.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/vtoan/4th%20FDSE/multi-agent-TSC/network/4x1-two-way.net.xml"/>
+        <sumo-net-file value="/home/vtoan/UTC/tslib/traffic-sumo/4x1-two-way.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/vtoan/4th%20FDSE/multi-agent-TSC/network/4x1-two-way.net.xml"/>
+        <output-file value="/home/vtoan/UTC/tslib/traffic-sumo/4x1-two-way.net.xml"/>
     </output>
 
     <processing>
+        <geometry.min-radius.fix.railways value="false"/>
         <geometry.max-grade.fix value="false"/>
         <offset.disable-normalization value="true"/>
         <lefthand value="false"/>
@@ -28,10 +29,14 @@
         <walkingareas value="false"/>
     </pedestrian>
 
+    <report>
+        <aggregate-warnings value="5"/>
+    </report>
+
 </configuration>
 -->
 
-<net version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
+<net version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
     <location netOffset="300.00,300.00" convBoundary="0.00,8.13,1507.42,594.44" origBoundary="-310.00,-310.00,310.00,310.00" projParameter="!"/>
 
