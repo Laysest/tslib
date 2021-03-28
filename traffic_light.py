@@ -45,43 +45,12 @@ class TrafficLight:
 
     def getState(self):
         """
-            return the current state of the intersection, must depend on the control algorithm
+            return the current state of the intersection
         """
-        if self.control_algorithm == 'SOTL':
-            all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]
-            current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-            num_veh_ordered = []
-            for lane in self.lanes:
-                num_veh_ordered.append(self.traci.lane.getLastStepVehicleNumber(lane))
-            
-            return current_logic, num_veh_ordered
+        all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
+        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
 
-        elif self.control_algorithm == 'SimpleRL':
-            all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-            current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-            num_veh_ordered = []
-            for lane in self.lanes:
-                num_veh_ordered.append(self.traci.lane.getLastStepVehicleNumber(lane))
-
-            number_veh_on_green_lanes = 0
-            number_veh_on_red_lanes = 0
-            for i in range(len(num_veh_ordered)):
-                if current_logic[i] in ['r', 'R']:
-                    number_veh_on_red_lanes += num_veh_ordered[i]
-                elif current_logic[i] in ['g', 'G']:
-                    number_veh_on_green_lanes += num_veh_ordered[i]
-                else:
-                    print("Error in getState in case of SimpleRL")
-                    print("step: %d, id: %s, current_logic: %s, actions: %s" % (self.traci.simulation.getTime(), self.id, str(current_logic), str(self.control_actions)))
-
-            return [number_veh_on_green_lanes, number_veh_on_red_lanes]
-
-    def computeReward(self):
-        if self.control_algorithm == 'SimpleRL':
-            reward = 0
-            for lane in self.lanes:
-                reward -= self.traci.lane.getLastStepHaltingNumber(lane)
-            return reward
+        return {'tfID': self.id, 'traci': self.traci, 'lanes': self.lanes, 'current_logic': current_logic}
 
     def update(self, is_train=False):
     #   if len = 0 => no action in queue:
@@ -96,10 +65,6 @@ class TrafficLight:
     #               that means finish the cycle => delete in queue
     #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
 
-        # all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
-        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        # print("step: %d, id: %s, control_actions: %s, current_logic: %s" % (self.traci.simulation.getTime(), self.id, self.control_actions, current_logic))
-
         if len(self.control_actions) <= 0: 
             cur_state = self.getState()
             # if is training:
@@ -112,9 +77,9 @@ class TrafficLight:
                 # log last_state, last_action, reward, cur_state
                 if self.last_state != None and self.last_action != None:
                     # compute reward
-                    reward = self.computeReward()
-                    self.controller.exp_memory.add([self.last_state, self.last_action, reward, cur_state])
-                self.last_state, self.last_action = cur_state, action
+                    reward = self.controller.computeReward(cur_state)
+                    self.controller.exp_memory.add([self.last_state, self.last_action, reward, self.controller.processState(cur_state)])
+                self.last_state, self.last_action = self.controller.processState(cur_state), action
             else:
                 action = self.controller.makeAction(cur_state)
 

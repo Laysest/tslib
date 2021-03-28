@@ -4,7 +4,26 @@ MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
 
 class SOTL(Controller):
-    def makeAction(self, state):
+    def processState(self, state):
+        """
+            from general state returned from traffic light
+            process to return (current_logic, num_veh_ordered)
+            current_logic: 'ggggrrrrgggg' shows status of traffic light
+            num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order  
+        """
+        current_logic = state['current_logic']
+        num_veh_ordered = []
+        for lane in state['lanes']:
+            num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
+        
+        return current_logic, num_veh_ordered
+
+
+    def makeAction(self, state_):
+        """
+            return action based on SOTL's rules & current state
+        """
+        state = self.processState(state_)
         current_logic, num_veh_ordered = state
         number_veh_on_green_lanes = 0
         number_veh_on_red_lanes = 0

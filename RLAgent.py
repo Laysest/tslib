@@ -29,6 +29,14 @@ class RLAgent(Controller):
         print("Must <<overwrite>> \"build_mode\" function in RL-based methods")
         return None
 
+    def processState(self, state):
+        print("Must <<override> processState(state)!!")
+        pass
+
+    def computeReward(self, state):
+        print("Muss <<override>> computeReward(state)")
+        pass
+    
     def replay(self):
         if self.exp_memory.len() < BATCH_SIZE:
             return
@@ -46,5 +54,6 @@ class RLAgent(Controller):
         
         self.model.fit(np.array(batch_states), np.array(batch_targets), epochs=EPOCHS, shuffle=False, verbose=0, validation_split=0.3)
 
-    def makeAction(self, state):
+    def makeAction(self, state_):
+        state = self.processState(state_)
         return np.argmax(self.model.predict(np.array([state]))[0])

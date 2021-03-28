@@ -6,7 +6,7 @@ from keras.optimizers import Adam
 ACTION_SPACE = 2
 STATE_SPACE = 2
 
-class SimpleRL(RLAgent):
+class SimplePhaseGate(RLAgent):
     def processState(self, state):
         """
             from general state returned from traffic light
