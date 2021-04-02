@@ -2,7 +2,6 @@
     <processing>
         <time-to-teleport value="-1" />
         <ignore-junction-blocker value="1" />
-        <lateral-resolution value="0.6"/>
         <waiting-time-memory value="500" />
     </processing>
     <duration-log.statistics value="true"/>

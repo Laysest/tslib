@@ -1,5 +1,6 @@
 from SOTL import SOTL
 from SimpleRL import SimpleRL
+from CDRL import CDRL
 import random
 import sys
 
@@ -7,22 +8,25 @@ MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='SimpleRL', yellow_duration=3, traci=None, cycle_control=5):
+    def __init__(self, tfID, algorithm='CDRL', yellow_duration=3, traci=None, cycle_control=5):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
         self.control_algorithm = algorithm
         self.traci = traci
-        self.cycle_control = 5
+        self.cycle_control = 1
         # traci.setOrder(2)
 
-        self.lanes = self.traci.trafficlight.getControlledLanes(tfID) # check
+        self.lanes = self.traci.trafficlight.getControlledLanes(tfID)
+
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
             self.controller = SOTL()
         elif self.control_algorithm == 'SimpleRL':
             self.controller = SimpleRL()
+        elif self.control_algorithm == 'CDRL':
+            self.controller = CDRL()
         else:
             print("Must implement method named %s" % algorithm)
 

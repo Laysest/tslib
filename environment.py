@@ -46,10 +46,10 @@ class Environment():
                 traci.start(sumo_cmd)
                 # create traffic_lights just once
                 if e == 0:
-                    self.traffic_lights = [  TrafficLight('node1', traci=traci), 
-                                            TrafficLight('node2', traci=traci), 
-                                            TrafficLight('node3', traci=traci), 
-                                            TrafficLight('node4', traci=traci) ]
+                    self.traffic_lights = [  TrafficLight('node1', traci=traci), ]
+                                            # TrafficLight('node2', traci=traci), 
+                                            # TrafficLight('node3', traci=traci), 
+                                            # TrafficLight('node4', traci=traci) ]
                 else:
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].reset()
@@ -67,10 +67,10 @@ class Environment():
 
         else:
             traci.start(sumo_cmd)
-            self.traffic_lights = [  TrafficLight('node1', traci=traci), 
-                                    TrafficLight('node2', traci=traci), 
-                                    TrafficLight('node3', traci=traci), 
-                                    TrafficLight('node4', traci=traci) ]
+            self.traffic_lights = [  TrafficLight('node1', traci=traci), ]
+                                    # TrafficLight('node2', traci=traci), 
+                                    # TrafficLight('node3', traci=traci), 
+                                    # TrafficLight('node4', traci=traci) ]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()
                 for i in range(len(self.traffic_lights)):
