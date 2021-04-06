@@ -3,8 +3,11 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
 import numpy as np
+np.set_printoptions(threshold=np.inf)
+
 import math
 import sumolib
+import sys
 
 ACTION_SPACE = 2
 STATE_SPACE = (25, 25)
@@ -12,7 +15,10 @@ STATE_SPACE = (25, 25)
 MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
 
-ARRAY_LENGTH = 20
+ARRAY_LENGTH = 9
+CENTER_LENGTH = 1
+MAP_SIZE = (2*(ARRAY_LENGTH + CENTER_LENGTH), 2*(ARRAY_LENGTH + CENTER_LENGTH))
+
 LENGTH_CELL = 5
 
 # we only support 3-way and 4-way intersections
@@ -25,6 +31,8 @@ class CDRL(RLAgent):
         RLAgent.__init__(self)
         self.config = config
         self.tfID = tfID
+        
+        # self.buildMap()
 
     def getNodesSortedByDirection(self):
         """
@@ -42,62 +50,13 @@ class CDRL(RLAgent):
         
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
-        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
-
+        neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
         # center_node_coord = center_node.getCoord()
         # nodes_id = [node.getID() for node in neightbor_nodes_sorted]
 
         return neightbor_nodes_sorted, center_node
 
-
-    
-
-    # def processState(self, state):
-    #     """
-    #         from general state returned from traffic light
-    #         process to return (number_veh_on_green_lanes, number_veh_on_red_lanes)
-    #     """
-
-    #     num_veh_ordered = []
-    #     for lane in state['lanes']:
-    #         num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
-
-    #     number_veh_on_green_lanes = 0
-    #     number_veh_on_red_lanes = 0
-    #     for i in range(len(num_veh_ordered)):
-    #         if state['current_logic'][i] in ['r', 'R']:
-    #             number_veh_on_red_lanes += num_veh_ordered[i]
-    #         elif state['current_logic'][i] in ['g', 'G']:
-    #             number_veh_on_green_lanes += num_veh_ordered[i]
-    #         else:
-    #             print("Error in getState in case of SimpleRL")
-
-    #     return [number_veh_on_green_lanes, number_veh_on_red_lanes]
-    
-    # def computeReward(self, state):
-    #     reward = 0
-    #     for lane in state['lanes']:
-    #         reward -= state['traci'].lane.getLastStepHaltingNumber(lane)
-    #     return reward
-
-    # def buildModel(self):
-    #     """
-    #         return the model in keras
-    #     """
-    #     model = Sequential()
-    #     model.add(Dense(16, input_dim=STATE_SPACE))
-    #     model.add(Activation('relu'))
-    #     model.add(Dense(32))
-    #     model.add(Activation('relu'))
-    #     model.add(Dense(32))
-    #     model.add(Activation('relu'))
-    #     model.add(Dense(ACTION_SPACE))
-    #     model.add(Activation('linear'))
-    #     model.compile(loss='mean_squared_error', optimizer='adam')
-
-    #     return model
-
-    def processState(self, state):
+    def processState(self, state=None):
         """
             from general state returned from traffic light
             process to return (current_logic, num_veh_ordered)
@@ -106,41 +65,96 @@ class CDRL(RLAgent):
         """
         current_logic = state['current_logic']
         num_veh_ordered = []
+
         for lane in state['lanes']:
             num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
+
         # print(state['lanes'])
         # print(np.array_str(self.build_map(state['traci']), precision=2, suppress_small=True))
-        self.buildMap(state['traci'], state['lanes'])
-
+        map_ = self.buildMap(traci=state['traci'])
+        print(np.array_str(map_, suppress_small=True))
+        print("")
         return current_logic, num_veh_ordered
 
 
-    def buildMap(self, traci, lanes):
+    def buildMap(self, traci=None):
         """
             this function to return a 2D matrix indicating information on vehicles' positions
         """
         # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
-        
-        # for lane in lanes:
-        #     print(traci.lane.getLastStepVehicleIDs(lane))
-        arr = self.build_array(traci, lanes[0])
-        # for a in arr:
-        #     print(a)
-        # print('')
-        print(arr)
+        neightbor_nodes, center_node = self.getNodesSortedByDirection()
+        incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
 
-        return np.array([[1, 1, 1], [0.99999, 0.954, 0.5124], [1, 1, 1]])
+        
+
+        position_mapped = np.zeros(MAP_SIZE)
+
+        # handle the North side
+        if neightbor_nodes[0] != None:
+            incoming_edge_from_north = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[0].getID()][0]
+            outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
+            for i, lane in enumerate(incoming_edge_from_north.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[j][ARRAY_LENGTH + CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
+            for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[j][ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
+        
+
+        # handle the East side
+        if neightbor_nodes[1] != None:
+            incoming_edge_from_east = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[1].getID()][0]
+            outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
+            for i, lane in enumerate(incoming_edge_from_east.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][ARRAY_LENGTH + CENTER_LENGTH + j] = arr_[j]
+            for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][ARRAY_LENGTH + CENTER_LENGTH + j] = arr_[j]
+
+        # handle the South side
+        if neightbor_nodes[2] != None:
+            incoming_edge_from_south = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[2].getID()][0]
+            outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
+            for i, lane in enumerate(incoming_edge_from_south.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH][ARRAY_LENGTH + CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
+
+            for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH][ARRAY_LENGTH + CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
+
+        # handle the west side
+        if neightbor_nodes[3] != None:
+            incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
+            outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
+            for i, lane in enumerate(incoming_edge_from_west.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
+            for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
+                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
+                for j in range(ARRAY_LENGTH):
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
+
+        return position_mapped
     
-    def buildArray(self, traci, lane):
+    def buildArray(self, traci=None, lane=None, incoming=True):
         arr = np.zeros(ARRAY_LENGTH)
-        lane = 'StoC_0'
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
         lane_length = traci.lane.getLength(lane)
         vehs = traci.lane.getLastStepVehicleIDs(lane)
         for veh in vehs:
             veh_distance = traci.vehicle.getLanePosition(veh)
 
-            veh_distance -= lane_length - LENGTH_CELL*ARRAY_LENGTH
+            if incoming:
+                veh_distance -= lane_length - LENGTH_CELL*ARRAY_LENGTH
             if veh_distance < 0:
                 continue
             index = math.floor(veh_distance/5)
@@ -149,17 +163,10 @@ class CDRL(RLAgent):
                 continue
             veh_length = traci.vehicle.getLength(veh)
             for i in range(math.ceil(veh_length/5)):
-                if index + i < ARRAY_LENGTH:
-                    arr[index + i] = 1
+                if 0 <= index - i < ARRAY_LENGTH:
+                    arr[index - i] = 1
 
         return arr
-
-    def buildMap(self):
-        center_node, neightbor_nodes = self.getNodesSortedByDirection()
-        position_mapped = np.zeros((ARRAY_LENGTH, ARRAY_LENGTH))
-
-
-        return position_mapped
 
     def makeAction(self, state_):
         """

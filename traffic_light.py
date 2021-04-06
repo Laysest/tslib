@@ -9,13 +9,12 @@ MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='CDRL', yellow_duration=3, traci=None, cycle_control=5, config=None):
+    def __init__(self, tfID, algorithm='CDRL', yellow_duration=0, traci=None, cycle_control=1, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
-        self.control_algorithm = algorithm
         self.traci = traci
-        self.cycle_control = 1
+        self.cycle_control = cycle_control
         # traci.setOrder(2)
 
         self.lanes = self.traci.trafficlight.getControlledLanes(tfID)
