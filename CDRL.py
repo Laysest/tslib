@@ -4,6 +4,7 @@ from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
 import numpy as np
 import math
+import sumolib
 
 ACTION_SPACE = 2
 STATE_SPACE = (25, 25)
@@ -13,7 +14,44 @@ MAX_RED_VEHICLE = 30
 
 ARRAY_LENGTH = 20
 LENGTH_CELL = 5
+
+# we only support 3-way and 4-way intersections
+MAX_NUM_WAY = 4
+# we assume that there are only 2 red/green phases, user can change this depend on their config
+NUM_OF_RED_GREEN_PHASES = 2
+
 class CDRL(RLAgent):
+    def __init__(self, config=None, tfID=None):
+        RLAgent.__init__(self)
+        self.config = config
+        self.tfID = tfID
+
+    def getNodesSortedByDirection(self):
+        """
+            This function will return a list of nodes sorted by direction
+                N
+            W       E
+                S
+            [N, E, S, W] for 4-way intersection
+
+                N
+            W       E
+            [N, E, None, W]
+
+        """
+        
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
+        neightbor_nodes = center_node.getNeighboringNodes()
+        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
+
+        # center_node_coord = center_node.getCoord()
+        # nodes_id = [node.getID() for node in neightbor_nodes_sorted]
+
+        return neightbor_nodes_sorted, center_node
+
+
+    
+
     # def processState(self, state):
     #     """
     #         from general state returned from traffic light
@@ -93,7 +131,7 @@ class CDRL(RLAgent):
 
         return np.array([[1, 1, 1], [0.99999, 0.954, 0.5124], [1, 1, 1]])
     
-    def build_array(self, traci, lane):
+    def buildArray(self, traci, lane):
         arr = np.zeros(ARRAY_LENGTH)
         lane = 'StoC_0'
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
@@ -115,6 +153,13 @@ class CDRL(RLAgent):
                     arr[index + i] = 1
 
         return arr
+
+    def buildMap(self):
+        center_node, neightbor_nodes = self.getNodesSortedByDirection()
+        position_mapped = np.zeros((ARRAY_LENGTH, ARRAY_LENGTH))
+
+
+        return position_mapped
 
     def makeAction(self, state_):
         """
