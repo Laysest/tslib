@@ -34,7 +34,7 @@ class CDRL(RLAgent):
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
         print("%s: %s" % (center.getID(), str(nodes_id)))
-        
+
     def computeReward(self, state):
         reward = 0
         for lane in state['lanes']:
