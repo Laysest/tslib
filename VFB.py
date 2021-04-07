@@ -26,7 +26,7 @@ MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
 
-class CDRL(RLAgent):
+class VFB(RLAgent):
     def __init__(self, config=None, tfID=None):
         RLAgent.__init__(self)
         self.config = config
@@ -38,42 +38,18 @@ class CDRL(RLAgent):
     def computeReward(self, state):
         reward = 0
 
-        # penalty for change signal
-        reward -= 0.1*state['last_action_is_change']
-        
         # get list vehicles
         lanes = list(dict.fromkeys(state['lanes']))
         vehs = []
         for lane in lanes:
             vehs.extend(state['traci'].lane.getLastStepVehicleIDs(lane))
         
-        # penalty for teleports
-        num_veh_teleporting = 0
-        vehs_teleporting = state['traci'].simulation.getStartingTeleportIDList()
-        for veh in vehs:
-            if veh in vehs_teleporting:
-                num_veh_teleporting += 1
-        reward -= 0.1*num_veh_teleporting
-        
-        # penalty for emergency stops
-        num_veh_emergency_stop = 0
-        vehs_emergency_stop = state['traci'].simulation.getEmergencyStoppingVehiclesIDList()
-        for veh in vehs:
-            if veh in vehs_emergency_stop:
-                num_veh_emergency_stop += 1
-        reward -= 0.2*num_veh_emergency_stop
-
-        # penalty for delay
+        # total delay
         total_delay = 0
         for veh in vehs:
             total_delay += 1 - state['traci'].vehicle.getSpeed(veh) / state['traci'].vehicle.getAllowedSpeed(veh)
-        reward -= 0.3*total_delay
-
-        # penalty for waiting time
-        total_waiting_time = 0
-        for veh in vehs:
-            total_waiting_time += state['traci'].vehicle.getWaitingTime(veh)
-        reward -= 0.3*total_waiting_time
+        
+        reward = state['last_total_delay'] - total_delay
 
         return reward
 
@@ -190,7 +166,7 @@ class CDRL(RLAgent):
                 for j in range(ARRAY_LENGTH):
                     position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
-        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
+        return position_mapped
     
     def buildArray(self, traci=None, lane=None, incoming=True):
         arr = np.zeros(ARRAY_LENGTH)
@@ -214,43 +190,3 @@ class CDRL(RLAgent):
                     arr[index - i] = 1
 
         return arr
-
-    def addSignalInfor(self, position_mapped, cur_phase):
-        neightbor_nodes, center_node = self.getNodesSortedByDirection()
-
-        # 4-way intersection
-        if None not in neightbor_nodes:
-            # cur_phase == 0 ~ allow N and S
-            if cur_phase == 0:
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.8, 0.8
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.2, 0.2
-            elif cur_phase == 2:
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.2, 0.2
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.8, 0.8
-            else:
-                print("Error in CRDL.py - addSignalInfor()")
-        # 3-way intersection
-        else:
-            pass
-
-        return position_mapped
-
-    # def makeAction(self, state_):
-    #     """
-    #         return action based on SOTL's rules & current state
-    #     """
-    #     state = self.processState(state_)
-    #     current_logic, num_veh_ordered = state
-    #     number_veh_on_green_lanes = 0
-    #     number_veh_on_red_lanes = 0
-
-    #     for i in range(len(num_veh_ordered)):
-    #         if current_logic[i] in ['r', 'R']:
-    #             number_veh_on_red_lanes += num_veh_ordered[i]
-    #         elif current_logic[i] in ['g', 'G']:
-    #             number_veh_on_green_lanes += num_veh_ordered[i]
-    #         else:
-    #             print(state, "Error")
-    #     if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-    #         return 1
-    #     return 0

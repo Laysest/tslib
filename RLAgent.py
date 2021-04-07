@@ -7,6 +7,7 @@ MEMORY_SIZE = 2048
 BATCH_SIZE = 64
 GAMMA = 0.95
 EPOCHS = 50
+
 class Memory():
     def __init__(self, max_size):
         self.buffer = deque(maxlen = max_size)
