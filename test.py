@@ -15,7 +15,7 @@ config = {
     'veh_type': 'type.xml',
     'route': '4x1-two-way.light.route.xml',
     'end': 2000,
-    'gui': True
+    'gui': False
 }
 
 sim = TSLib(config)
