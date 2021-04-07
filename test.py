@@ -9,12 +9,12 @@ from tslib import TSLib
 # }
 
 config = {
-    'net': 'isolated.net.xml',
+    'net': '4x1-two-way.net.xml',
     'veh_type': 'type.xml',
-    'route': 'isolated.1.route.xml',
+    'route': '4x1-two-way.light.route.xml',
     'end': 2000,
-    'gui': True
+    'gui': False
 }
 
 sim = TSLib(config)
-sim.run(is_train=False)
+sim.run(is_train=True)

@@ -54,6 +54,6 @@ class RLAgent(Controller):
         
         self.model.fit(np.array(batch_states), np.array(batch_targets), epochs=EPOCHS, shuffle=False, verbose=0, validation_split=0.3)
 
-    def makeAction(self, state_):
-        state = self.processState(state_)
-        return np.argmax(self.model.predict(np.array([state]))[0])
+    def makeAction(self, state):
+        state_ = self.processState(state)
+        return np.argmax(self.model.predict(np.array([state_]))[0])

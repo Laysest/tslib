@@ -1,6 +1,6 @@
 from RLAgent import RLAgent
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
 from keras.optimizers import Adam
 import numpy as np
 np.set_printoptions(threshold=np.inf)
@@ -10,7 +10,6 @@ import sumolib
 import sys
 
 ACTION_SPACE = 2
-STATE_SPACE = (25, 25)
 
 MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
@@ -18,6 +17,7 @@ MAX_RED_VEHICLE = 30
 ARRAY_LENGTH = 9
 CENTER_LENGTH = 1
 MAP_SIZE = (2*(ARRAY_LENGTH + CENTER_LENGTH), 2*(ARRAY_LENGTH + CENTER_LENGTH))
+STATE_SPACE = (MAP_SIZE[0], MAP_SIZE[1], 1)
 
 LENGTH_CELL = 5
 
@@ -31,8 +31,30 @@ class CDRL(RLAgent):
         RLAgent.__init__(self)
         self.config = config
         self.tfID = tfID
+        nodes, center = self.getNodesSortedByDirection()
+        nodes_id = [node.getID() for node in nodes]
+        print("%s: %s" % (center.getID(), str(nodes_id)))
         
-        # self.buildMap()
+    def computeReward(self, state):
+        reward = 0
+        for lane in state['lanes']:
+            reward -= state['traci'].lane.getLastStepHaltingNumber(lane)
+        return reward
+
+    def buildModel(self):
+        """
+            return the model in keras
+        """
+        model = Sequential()
+        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=STATE_SPACE))
+        model.add(MaxPooling2D((2, 2)))
+        model.add(Flatten())
+        model.add(Dense(128, activation='relu'))
+        model.add(Dense(32, activation='relu'))
+        model.add(Dense(ACTION_SPACE, activation='linear'))
+        model.compile(loss='mean_squared_error', optimizer='adam')
+
+        return model
 
     def getNodesSortedByDirection(self):
         """
@@ -50,31 +72,20 @@ class CDRL(RLAgent):
         
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
-        neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
+        # isolated...
+        # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
+        # 4x1 network
+        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
+        
         # center_node_coord = center_node.getCoord()
-        # nodes_id = [node.getID() for node in neightbor_nodes_sorted]
-
         return neightbor_nodes_sorted, center_node
 
     def processState(self, state=None):
         """
             from general state returned from traffic light
-            process to return (current_logic, num_veh_ordered)
-            current_logic: 'ggggrrrrgggg' shows status of traffic light
-            num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order  
+            process to return position_map
         """
-        current_logic = state['current_logic']
-        num_veh_ordered = []
-
-        for lane in state['lanes']:
-            num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
-
-        # print(state['lanes'])
-        # print(np.array_str(self.build_map(state['traci']), precision=2, suppress_small=True))
-        map_ = self.buildMap(traci=state['traci'])
-        print(np.array_str(map_, suppress_small=True))
-        print("")
-        return current_logic, num_veh_ordered
+        return np.reshape(self.buildMap(traci=state['traci']), STATE_SPACE) # reshape to (SPACE, 1)
 
 
     def buildMap(self, traci=None):
@@ -110,11 +121,11 @@ class CDRL(RLAgent):
             for i, lane in enumerate(incoming_edge_from_east.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
                 for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][ARRAY_LENGTH + CENTER_LENGTH + j] = arr_[j]
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][ARRAY_LENGTH + CENTER_LENGTH + j + 1] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
                 for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][ARRAY_LENGTH + CENTER_LENGTH + j] = arr_[j]
+                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][ARRAY_LENGTH + CENTER_LENGTH + j + 1] = arr_[j]
 
         # handle the South side
         if neightbor_nodes[2] != None:
@@ -123,14 +134,14 @@ class CDRL(RLAgent):
             for i, lane in enumerate(incoming_edge_from_south.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
                 for j in range(ARRAY_LENGTH):
-                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH][ARRAY_LENGTH + CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
+                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH + 1][ARRAY_LENGTH + CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
 
             for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
                 for j in range(ARRAY_LENGTH):
-                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH][ARRAY_LENGTH + CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
+                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH + 1][ARRAY_LENGTH + CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
 
-        # handle the west side
+        # handle the West side
         if neightbor_nodes[3] != None:
             incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
             outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
@@ -143,7 +154,7 @@ class CDRL(RLAgent):
                 for j in range(ARRAY_LENGTH):
                     position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
-        return position_mapped
+        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
     
     def buildArray(self, traci=None, lane=None, incoming=True):
         arr = np.zeros(ARRAY_LENGTH)
@@ -168,22 +179,42 @@ class CDRL(RLAgent):
 
         return arr
 
-    def makeAction(self, state_):
-        """
-            return action based on SOTL's rules & current state
-        """
-        state = self.processState(state_)
-        current_logic, num_veh_ordered = state
-        number_veh_on_green_lanes = 0
-        number_veh_on_red_lanes = 0
+    def addSignalInfor(self, position_mapped, cur_phase):
+        neightbor_nodes, center_node = self.getNodesSortedByDirection()
 
-        for i in range(len(num_veh_ordered)):
-            if current_logic[i] in ['r', 'R']:
-                number_veh_on_red_lanes += num_veh_ordered[i]
-            elif current_logic[i] in ['g', 'G']:
-                number_veh_on_green_lanes += num_veh_ordered[i]
+        # 4-way intersection
+        if None not in neightbor_nodes:
+            # cur_phase == 0 ~ allow N and S
+            if cur_phase == 0:
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.8, 0.8
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.2, 0.2
+            elif cur_phase == 2:
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.2, 0.2
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.8, 0.8
             else:
-                print(state, "Error")
-        if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-            return 1
-        return 0
+                print("Error in CRDL.py - addSignalInfor()")
+        # 3-way intersection
+        else:
+            pass
+
+        return position_mapped
+
+    # def makeAction(self, state_):
+    #     """
+    #         return action based on SOTL's rules & current state
+    #     """
+    #     state = self.processState(state_)
+    #     current_logic, num_veh_ordered = state
+    #     number_veh_on_green_lanes = 0
+    #     number_veh_on_red_lanes = 0
+
+    #     for i in range(len(num_veh_ordered)):
+    #         if current_logic[i] in ['r', 'R']:
+    #             number_veh_on_red_lanes += num_veh_ordered[i]
+    #         elif current_logic[i] in ['g', 'G']:
+    #             number_veh_on_green_lanes += num_veh_ordered[i]
+    #         else:
+    #             print(state, "Error")
+    #     if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
+    #         return 1
+    #     return 0

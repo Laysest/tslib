@@ -57,10 +57,10 @@ class Environment():
                 traci.start(sumo_cmd)
                 # create traffic_lights just once
                 if e == 0:
-                    self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config), ]
-                                            # TrafficLight('node2', traci=traci, config=self.config), 
-                                            # TrafficLight('node3', traci=traci, config=self.config), 
-                                            # TrafficLight('node4', traci=traci, config=self.config) ]
+                    self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config),
+                                            TrafficLight('node2', traci=traci, config=self.config), 
+                                            TrafficLight('node3', traci=traci, config=self.config), 
+                                            TrafficLight('node4', traci=traci, config=self.config) ]                    
                 else:
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].reset()
@@ -78,10 +78,10 @@ class Environment():
 
         else:
             traci.start(sumo_cmd)
-            self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config),]
-                                    # TrafficLight('node2', traci=traci, config=self.config), 
-                                    # TrafficLight('node3', traci=traci, config=self.config), 
-                                    # TrafficLight('node4', traci=traci, config=self.config)]
+            self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config),
+                                    TrafficLight('node2', traci=traci, config=self.config), 
+                                    TrafficLight('node3', traci=traci, config=self.config), 
+                                    TrafficLight('node4', traci=traci, config=self.config)]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()
                 for i in range(len(self.traffic_lights)):

@@ -9,7 +9,7 @@ MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='CDRL', yellow_duration=0, traci=None, cycle_control=1, config=None):
+    def __init__(self, tfID, algorithm='CDRL', yellow_duration=3, traci=None, cycle_control=5, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
@@ -78,13 +78,19 @@ class TrafficLight:
                 else:
                     action = self.controller.makeAction(cur_state)
                 # log last_state, last_action, reward, cur_state
-                if self.last_state != None and self.last_action != None:
+                if (self.last_state is not None) and (self.last_action is not None):
                     # compute reward
                     reward = self.controller.computeReward(cur_state)
                     self.controller.exp_memory.add([self.last_state, self.last_action, reward, self.controller.processState(cur_state)])
                 self.last_state, self.last_action = self.controller.processState(cur_state), action
             else:
                 action = self.controller.makeAction(cur_state)
+
+            # handle action type of CDRL:
+            if cur_state['traci'].trafficlight.getPhase(cur_state['tfID']) != action:
+                action = 1
+            else:
+                action = 0
 
             if action == 1:
                 current_phase_ = self.traci.trafficlight.getPhase(self.id)
