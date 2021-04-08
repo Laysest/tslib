@@ -1,4 +1,5 @@
 <additional>
-    <vType id="moped" vClass="moped" minGap="0.5" latAlignment="compact" />
     <vType id="passenger" vClass="passenger" latAlignment="center"/>
+    <vType id="truck" vClass="trailer" latAlignment="center"/>
+    <vType id="bus" vClass="bus" latAlignment="center"/>
 </additional>

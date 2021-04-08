@@ -4,7 +4,7 @@ import time
 import sumolib
 from sumolib.miscutils import getFreeSocketPort
 import numpy as np
-
+import sys
 
 INTERVAL = 50
 
@@ -27,6 +27,15 @@ class Environment():
     def update(self):
         pass
 
+    
+    def getEdgesOfNode(self, tfID):
+        in_edges = []
+        out_edges = []
+        for edge in self.edges:
+            if edge.getToNode() == tfID:
+                in_edges.append(edge)
+            # elif edge.get
+
     def run(self, is_train=False):
         """
             To run a simulation based on the configurate
@@ -40,16 +49,18 @@ class Environment():
                       "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
         sumo_cmd.extend(sumo_config)
 
+        # self.edges = str(sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getEdges()
+
         if is_train:
             for e in range(50):
                 print("Episode: %d" % e)
                 traci.start(sumo_cmd)
                 # create traffic_lights just once
                 if e == 0:
-                    self.traffic_lights = [  TrafficLight('node1', traci=traci), 
-                                            TrafficLight('node2', traci=traci), 
-                                            TrafficLight('node3', traci=traci), 
-                                            TrafficLight('node4', traci=traci) ]
+                    self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config),
+                                            TrafficLight('node2', traci=traci, config=self.config), 
+                                            TrafficLight('node3', traci=traci, config=self.config), 
+                                            TrafficLight('node4', traci=traci, config=self.config) ]                    
                 else:
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].reset()
@@ -67,10 +78,10 @@ class Environment():
 
         else:
             traci.start(sumo_cmd)
-            self.traffic_lights = [  TrafficLight('node1', traci=traci), 
-                                    TrafficLight('node2', traci=traci), 
-                                    TrafficLight('node3', traci=traci), 
-                                    TrafficLight('node4', traci=traci) ]
+            self.traffic_lights = [  TrafficLight('node1', traci=traci, config=self.config),
+                                    TrafficLight('node2', traci=traci, config=self.config), 
+                                    TrafficLight('node3', traci=traci, config=self.config), 
+                                    TrafficLight('node4', traci=traci, config=self.config)]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()
                 for i in range(len(self.traffic_lights)):

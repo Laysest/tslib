@@ -1,28 +1,34 @@
 from SOTL import SOTL
 from SimpleRL import SimpleRL
+from CDRL import CDRL
+from VFB import VFB
 import random
 import sys
+import sumolib
 
 MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='SimpleRL', yellow_duration=3, traci=None, cycle_control=5):
+    def __init__(self, tfID, algorithm='VFB', yellow_duration=3, traci=None, cycle_control=5, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
-        self.control_algorithm = algorithm
         self.traci = traci
-        self.cycle_control = 5
+        self.cycle_control = cycle_control
         # traci.setOrder(2)
 
-        self.lanes = self.traci.trafficlight.getControlledLanes(tfID) # check
+        self.lanes = self.traci.trafficlight.getControlledLanes(tfID)
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
             self.controller = SOTL()
         elif self.control_algorithm == 'SimpleRL':
             self.controller = SimpleRL()
+        elif self.control_algorithm == 'CDRL':
+            self.controller = CDRL(config=config, tfID=tfID)
+        elif self.control_algorithm == 'VFB':
+            self.controller = VFB(config=config, tfID=tfID)
         else:
             print("Must implement method named %s" % algorithm)
 
@@ -42,6 +48,8 @@ class TrafficLight:
         self.current_phase = self.traci.trafficlight.getPhase(self.id)
         self.setLogic()
         self.last_action, self.last_state = None, None
+        self.last_action_is_change = 0
+        self.last_total_delay = 0
 
     def getState(self):
         """
@@ -50,7 +58,8 @@ class TrafficLight:
         all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
         current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
 
-        return {'tfID': self.id, 'traci': self.traci, 'lanes': self.lanes, 'current_logic': current_logic}
+        return {'tfID': self.id, 'traci': self.traci, 'lanes': self.lanes, 'current_logic': current_logic, 
+                'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay}
 
     def update(self, is_train=False):
     #   if len = 0 => no action in queue:
@@ -75,7 +84,7 @@ class TrafficLight:
                 else:
                     action = self.controller.makeAction(cur_state)
                 # log last_state, last_action, reward, cur_state
-                if self.last_state != None and self.last_action != None:
+                if (self.last_state is not None) and (self.last_action is not None):
                     # compute reward
                     reward = self.controller.computeReward(cur_state)
                     self.controller.exp_memory.add([self.last_state, self.last_action, reward, self.controller.processState(cur_state)])
@@ -83,7 +92,25 @@ class TrafficLight:
             else:
                 action = self.controller.makeAction(cur_state)
 
-            if action == 1:
+            # handle action type of CDRL:
+            if cur_state['traci'].trafficlight.getPhase(cur_state['tfID']) != action:
+                to_change = 1
+            else:
+                to_change = 0
+            
+            # save measured performance of last state
+            self.last_action_is_change = to_change
+            # get total delay
+            lanes = list(dict.fromkeys(self.lanes))
+            vehs = []
+            for lane in lanes:
+                vehs.extend(cur_state['traci'].lane.getLastStepVehicleIDs(lane))
+            total_delay = 0
+            for veh in vehs:
+                total_delay += 1 - cur_state['traci'].vehicle.getSpeed(veh) / cur_state['traci'].vehicle.getAllowedSpeed(veh)
+            self.last_total_delay = total_delay
+
+            if to_change == 1:
                 current_phase_ = self.traci.trafficlight.getPhase(self.id)
                 if current_phase_ < 3:
                     self.traci.trafficlight.setPhase(self.id, current_phase_ + 1)

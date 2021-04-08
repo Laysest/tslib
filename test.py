@@ -1,4 +1,14 @@
 from tslib import TSLib
+import tensorflow as tf
+tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.8,allow_growth=True)
+
+# config = {
+#     'net': '4x1-two-way.net.xml',
+#     'veh_type': 'type.xml',
+#     'route': '4x1-two-way.light.route.xml',
+#     'end': 2000,
+#     'gui': True
+# }
 
 config = {
     'net': '4x1-two-way.net.xml',
@@ -7,7 +17,6 @@ config = {
     'end': 2000,
     'gui': False
 }
-
 
 sim = TSLib(config)
 sim.run(is_train=True)
