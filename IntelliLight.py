@@ -28,6 +28,11 @@ MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
 
+BATCH_SIZE = 64
+GAMMA = 0.95
+EPOCHS = 50
+SAMPLE_SIZE = 256
+
 class IntelliLight(RLAgent):
     def __init__(self, config=None, tfID=None):
         RLAgent.__init__(self)
@@ -253,3 +258,30 @@ class IntelliLight(RLAgent):
     
     def actionType(self):
         return ActionType.CHANGING_KEEPING
+
+    def replay(self):
+        if self.exp_memory.len() < SAMPLE_SIZE:
+            return
+        minibatch =  self.exp_memory.sample(SAMPLE_SIZE)    
+        batch_states = []
+        batch_targets = []
+        for state_, action_, reward_, next_state_ in minibatch:
+            qs = self.model.predict([next_state_])
+            target = reward_ + GAMMA*np.amax(qs[0])
+            target_f = self.model.predict([state_])
+            target_f[0][action_] = target
+            batch_states.append(state_)
+            batch_targets.append(target_f[0])
+        # for i in range(len(batch_states)):
+        #     print(np.array(batch_states[i][0]).shape, np.array(batch_states[i][1]).shape)
+        # self.model.train_on_batch(batch_states, batch_targets)
+        print("replay")
+        for epoch in range(EPOCHS):
+            self.model.train_on_batch(batch_states, batch_targets)
+            # self.model.train_on_batch(batch_states, batch_targets)
+
+    def makeAction(self, state):
+        state_ = self.processState(state)
+        # print(np.array(state_[0]).shape, np.array(state_[1]).shape) 
+        out_ = self.model.predict([state_])[0]
+        return np.argmax(out_)

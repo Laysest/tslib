@@ -20,9 +20,6 @@ class SOTL(Controller):
 
 
     def makeAction(self, state_):
-        """
-            return action based on SOTL's rules & current state
-        """
         state = self.processState(state_)
         current_logic, num_veh_ordered = state
         number_veh_on_green_lanes = 0
