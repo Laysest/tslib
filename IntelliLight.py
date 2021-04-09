@@ -275,7 +275,6 @@ class IntelliLight(RLAgent):
         # for i in range(len(batch_states)):
         #     print(np.array(batch_states[i][0]).shape, np.array(batch_states[i][1]).shape)
         # self.model.train_on_batch(batch_states, batch_targets)
-        print("replay")
         for epoch in range(EPOCHS):
             self.model.train_on_batch(batch_states, batch_targets)
             # self.model.train_on_batch(batch_states, batch_targets)
