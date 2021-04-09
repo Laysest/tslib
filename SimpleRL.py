@@ -1,7 +1,8 @@
 from RLAgent import RLAgent
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
-from keras.optimizers import Adam
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation, Flatten
+from tensorflow.keras.optimizers import Adam
 
 ACTION_SPACE = 2
 STATE_SPACE = 2

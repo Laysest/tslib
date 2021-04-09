@@ -2,15 +2,17 @@ from SOTL import SOTL
 from SimpleRL import SimpleRL
 from CDRL import CDRL
 from VFB import VFB
+from IntelliLight import IntelliLight
 import random
 import sys
 import sumolib
+from controller import ActionType
 
 MAX_INT = 9999999
 EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='VFB', yellow_duration=3, traci=None, cycle_control=5, config=None):
+    def __init__(self, tfID, algorithm='IntelliLight', yellow_duration=3, traci=None, cycle_control=5, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
@@ -29,6 +31,8 @@ class TrafficLight:
             self.controller = CDRL(config=config, tfID=tfID)
         elif self.control_algorithm == 'VFB':
             self.controller = VFB(config=config, tfID=tfID)
+        elif self.control_algorithm == 'IntelliLight':
+            self.controller = IntelliLight(config=config, tfID=tfID)
         else:
             print("Must implement method named %s" % algorithm)
 
@@ -50,6 +54,7 @@ class TrafficLight:
         self.last_action, self.last_state = None, None
         self.last_action_is_change = 0
         self.last_total_delay = 0
+        self.action_type = self.controller.actionType()
 
     def getState(self):
         """
@@ -92,14 +97,18 @@ class TrafficLight:
             else:
                 action = self.controller.makeAction(cur_state)
 
-            # handle action type of CDRL:
-            if cur_state['traci'].trafficlight.getPhase(cur_state['tfID']) != action:
-                to_change = 1
+            if self.action_type == ActionType.CHOICE_OF_PHASE:
+                # handle action type of CDRL:
+                if cur_state['traci'].trafficlight.getPhase(cur_state['tfID']) != action:
+                    to_change = 1
+                else:
+                    to_change = 0
             else:
-                to_change = 0
-            
+                to_change = action
+
             # save measured performance of last state
             self.last_action_is_change = to_change
+
             # get total delay
             lanes = list(dict.fromkeys(self.lanes))
             vehs = []

@@ -1,4 +1,4 @@
-from controller import Controller
+from controller import Controller, ActionType
 
 MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
@@ -38,3 +38,6 @@ class SOTL(Controller):
         if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
             return 1
         return 0
+
+    def actionType(self):
+        return ActionType.CHANGING_KEEPING

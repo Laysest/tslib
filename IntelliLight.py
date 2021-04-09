@@ -1,7 +1,8 @@
 from RLAgent import RLAgent
+from controller import ActionType
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D
 from tensorflow.keras.optimizers import Adam
 import numpy as np
 np.set_printoptions(threshold=np.inf)
@@ -27,7 +28,7 @@ MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
 
-class VFB(RLAgent):
+class IntelliLight(RLAgent):
     def __init__(self, config=None, tfID=None):
         RLAgent.__init__(self)
         self.config = config
@@ -39,18 +40,42 @@ class VFB(RLAgent):
     def computeReward(self, state):
         reward = 0
 
+        # penalty for change signal
+        reward -= 0.1*state['last_action_is_change']
+        
         # get list vehicles
         lanes = list(dict.fromkeys(state['lanes']))
         vehs = []
         for lane in lanes:
             vehs.extend(state['traci'].lane.getLastStepVehicleIDs(lane))
         
-        # total delay
+        # penalty for teleports
+        num_veh_teleporting = 0
+        vehs_teleporting = state['traci'].simulation.getStartingTeleportIDList()
+        for veh in vehs:
+            if veh in vehs_teleporting:
+                num_veh_teleporting += 1
+        reward -= 0.1*num_veh_teleporting
+        
+        # penalty for emergency stops
+        num_veh_emergency_stop = 0
+        vehs_emergency_stop = state['traci'].simulation.getEmergencyStoppingVehiclesIDList()
+        for veh in vehs:
+            if veh in vehs_emergency_stop:
+                num_veh_emergency_stop += 1
+        reward -= 0.2*num_veh_emergency_stop
+
+        # penalty for delay
         total_delay = 0
         for veh in vehs:
             total_delay += 1 - state['traci'].vehicle.getSpeed(veh) / state['traci'].vehicle.getAllowedSpeed(veh)
-        
-        reward = state['last_total_delay'] - total_delay
+        reward -= 0.3*total_delay
+
+        # penalty for waiting time
+        total_waiting_time = 0
+        for veh in vehs:
+            total_waiting_time += state['traci'].vehicle.getWaitingTime(veh)
+        reward -= 0.3*total_waiting_time
 
         return reward
 
@@ -58,13 +83,27 @@ class VFB(RLAgent):
         """
             return the model in keras
         """
-        model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=STATE_SPACE))
-        model.add(MaxPooling2D((2, 2)))
-        model.add(Flatten())
-        model.add(Dense(128, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(ACTION_SPACE, activation='linear'))
+        # model = Sequential()
+        input_ = Input(shape=STATE_SPACE)
+        phase_ = Input(shape=(1))
+        
+        image_1_ = Conv2D(32, (3, 3), activation='relu')(input_)
+        polling_1_ = MaxPooling2D((2, 2))(image_1_)
+        flatten_1_ = Flatten()(polling_1_)
+        dense_1_1_ = Dense(128, activation='relu')(flatten_1_)
+        dense_2_1_ = Dense(32, activation='relu')(dense_1_1_)
+        out_1_ = Dense(ACTION_SPACE, activation='linear')(dense_2_1_)
+
+        image_2_ = Conv2D(32, (3, 3), activation='relu')(input_)
+        polling_2_ = MaxPooling2D((2, 2))(image_2_)
+        flatten_2_ = Flatten()(polling_2_)
+        dense_1_2_ = Dense(128, activation='relu')(flatten_2_)
+        dense_2_2_ = Dense(32, activation='relu')(dense_1_2_)
+        out_2_ = Dense(ACTION_SPACE, activation='linear')(dense_2_2_)
+
+        out = tf.where(phase_ == 0, out_1_, out_2_)
+
+        model = tf.keras.Model(inputs=[input_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
@@ -98,8 +137,10 @@ class VFB(RLAgent):
             from general state returned from traffic light
             process to return position_map
         """
-        return np.reshape(self.buildMap(traci=state['traci']), STATE_SPACE) # reshape to (SPACE, 1)
-
+        map_ = [np.reshape(self.buildMap(traci=state['traci']), STATE_SPACE)] # reshape to (SPACE, 1)
+        phase = state['traci'].trafficlight.getPhase(self.tfID)
+        state_ = [np.array(map_), np.array([phase])]
+        return state_
 
     def buildMap(self, traci=None):
         """
@@ -108,8 +149,6 @@ class VFB(RLAgent):
         # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
         neightbor_nodes, center_node = self.getNodesSortedByDirection()
         incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
-
-        
 
         position_mapped = np.zeros(MAP_SIZE)
 
@@ -167,7 +206,7 @@ class VFB(RLAgent):
                 for j in range(ARRAY_LENGTH):
                     position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
-        return position_mapped
+        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
     
     def buildArray(self, traci=None, lane=None, incoming=True):
         arr = np.zeros(ARRAY_LENGTH)
@@ -191,3 +230,26 @@ class VFB(RLAgent):
                     arr[index - i] = 1
 
         return arr
+
+    def addSignalInfor(self, position_mapped, cur_phase):
+        neightbor_nodes, center_node = self.getNodesSortedByDirection()
+
+        # 4-way intersection
+        if None not in neightbor_nodes:
+            # cur_phase == 0 ~ allow N and S
+            if cur_phase == 0:
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.8, 0.8
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.2, 0.2
+            elif cur_phase == 2:
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.2, 0.2
+                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.8, 0.8
+            else:
+                print("Error in CRDL.py - addSignalInfor()")
+        # 3-way intersection
+        else:
+            pass
+
+        return position_mapped
+    
+    def actionType(self):
+        return ActionType.CHANGING_KEEPING

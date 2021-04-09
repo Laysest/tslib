@@ -1,7 +1,8 @@
 from RLAgent import RLAgent
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
-from keras.optimizers import Adam
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 np.set_printoptions(threshold=np.inf)
 
@@ -234,23 +235,3 @@ class CDRL(RLAgent):
             pass
 
         return position_mapped
-
-    # def makeAction(self, state_):
-    #     """
-    #         return action based on SOTL's rules & current state
-    #     """
-    #     state = self.processState(state_)
-    #     current_logic, num_veh_ordered = state
-    #     number_veh_on_green_lanes = 0
-    #     number_veh_on_red_lanes = 0
-
-    #     for i in range(len(num_veh_ordered)):
-    #         if current_logic[i] in ['r', 'R']:
-    #             number_veh_on_red_lanes += num_veh_ordered[i]
-    #         elif current_logic[i] in ['g', 'G']:
-    #             number_veh_on_green_lanes += num_veh_ordered[i]
-    #         else:
-    #             print(state, "Error")
-    #     if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-    #         return 1
-    #     return 0
