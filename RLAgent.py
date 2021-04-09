@@ -42,6 +42,7 @@ class RLAgent(Controller):
         if self.exp_memory.len() < BATCH_SIZE:
             return
         minibatch =  self.exp_memory.sample(BATCH_SIZE)    
+        print(len(minibatch))
         batch_states = []
         batch_targets = []
         for state_, action_, reward_, next_state_ in minibatch:
@@ -53,6 +54,7 @@ class RLAgent(Controller):
             batch_states.append(state_)
             batch_targets.append(target_f[0])
         
+
         self.model.fit(batch_states, batch_targets, epochs=EPOCHS, shuffle=False, verbose=0, validation_split=0.3)
 
     def makeAction(self, state):
