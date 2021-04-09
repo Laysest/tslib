@@ -52,9 +52,8 @@ class RLAgent(Controller):
 
             batch_states.append(state_)
             batch_targets.append(target_f[0])
-        print(len(batch_states), len(batch_targets))
-
-        self.model.fit(batch_states, batch_targets, epochs=EPOCHS, shuffle=False, verbose=0, validation_split=0.3)
+# , validation_split=0.3
+        self.model.fit(batch_states, batch_targets, epochs=EPOCHS, shuffle=False, verbose=0)
 
     def makeAction(self, state):
         """
