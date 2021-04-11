@@ -10,30 +10,15 @@ np.set_printoptions(threshold=np.inf)
 import math
 import sumolib
 import sys
+from GlobalVariables import GlobalVariables
 
-ACTION_SPACE = 2
-
-MIN_GREEN_VEHICLE = 20
-MAX_RED_VEHICLE = 30
-
-ARRAY_LENGTH = 9
-CENTER_LENGTH = 1
-MAP_SIZE = (2*(ARRAY_LENGTH + CENTER_LENGTH), 2*(ARRAY_LENGTH + CENTER_LENGTH))
-MAP_SPACE = (MAP_SIZE[0], MAP_SIZE[1], 1)
 FEATURE_SPACE = (8*4)
 PHASE_SPACE = (1)
-
-LENGTH_CELL = 5
 
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
-
-BATCH_SIZE = 64
-GAMMA = 0.95
-EPOCHS = 50
-SAMPLE_SIZE = 256
 
 class IntelliLight(RLAgent):
     def __init__(self, config=None, tfID=None):
@@ -116,10 +101,10 @@ class IntelliLight(RLAgent):
         shared_hidden_1_ = Dense(64, activation='relu')(features_)
 
         separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_left_ = Dense(ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
+        output_left_ = Dense(GlobalVariables.ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
 
         separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_right_ = Dense(ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
+        output_right_ = Dense(GlobalVariables.ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
 
         out = tf.where(phase_ == 0, output_left_, output_right_)
 
@@ -194,7 +179,7 @@ class IntelliLight(RLAgent):
         neightbor_nodes, center_node = self.getNodesSortedByDirection()
         incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
 
-        position_mapped = np.zeros(MAP_SIZE)
+        position_mapped = np.zeros(GlobalVariables.MAP_SIZE)
 
         # handle the North side
         if neightbor_nodes[0] != None:
@@ -202,12 +187,12 @@ class IntelliLight(RLAgent):
             outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
             for i, lane in enumerate(incoming_edge_from_north.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[j][ARRAY_LENGTH + CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[j][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[j][ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[j][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
         
 
         # handle the East side
@@ -216,12 +201,12 @@ class IntelliLight(RLAgent):
             outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
             for i, lane in enumerate(incoming_edge_from_east.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][ARRAY_LENGTH + CENTER_LENGTH + j + 1] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + j + 1] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][ARRAY_LENGTH + CENTER_LENGTH + j + 1] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + j + 1] = arr_[j]
 
         # handle the South side
         if neightbor_nodes[2] != None:
@@ -229,13 +214,13 @@ class IntelliLight(RLAgent):
             outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
             for i, lane in enumerate(incoming_edge_from_south.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH + 1][ARRAY_LENGTH + CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[j + GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
 
             for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[j + ARRAY_LENGTH + CENTER_LENGTH + 1][ARRAY_LENGTH + CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[j + GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
 
         # handle the West side
         if neightbor_nodes[3] != None:
@@ -243,17 +228,17 @@ class IntelliLight(RLAgent):
             outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
             for i, lane in enumerate(incoming_edge_from_west.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
                 arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
-                for j in range(ARRAY_LENGTH):
-                    position_mapped[ARRAY_LENGTH + CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
+                for j in range(GlobalVariables.ARRAY_LENGTH):
+                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
         return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
     
     def buildArray(self, traci=None, lane=None, incoming=True):
-        arr = np.zeros(ARRAY_LENGTH)
+        arr = np.zeros(GlobalVariables.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
         lane_length = traci.lane.getLength(lane)
         vehs = traci.lane.getLastStepVehicleIDs(lane)
@@ -261,16 +246,16 @@ class IntelliLight(RLAgent):
             veh_distance = traci.vehicle.getLanePosition(veh)
 
             if incoming:
-                veh_distance -= lane_length - LENGTH_CELL*ARRAY_LENGTH
+                veh_distance -= lane_length - GlobalVariables.LENGTH_CELL*GlobalVariables.ARRAY_LENGTH
             if veh_distance < 0:
                 continue
             index = math.floor(veh_distance/5)
 
-            if index >= ARRAY_LENGTH:
+            if index >= GlobalVariables.ARRAY_LENGTH:
                 continue
             veh_length = traci.vehicle.getLength(veh)
             for i in range(math.ceil(veh_length/5)):
-                if 0 <= index - i < ARRAY_LENGTH:
+                if 0 <= index - i < GlobalVariables.ARRAY_LENGTH:
                     arr[index - i] = 1
 
         return arr
@@ -282,11 +267,11 @@ class IntelliLight(RLAgent):
         if None not in neightbor_nodes:
             # cur_phase == 0 ~ allow N and S
             if cur_phase == 0:
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.8, 0.8
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.2, 0.2
+                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH] = 0.8, 0.8
+                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH] = 0.2, 0.2
             elif cur_phase == 2:
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH+CENTER_LENGTH] = 0.2, 0.2
-                position_mapped[ARRAY_LENGTH][ARRAY_LENGTH + CENTER_LENGTH], position_mapped[ARRAY_LENGTH+CENTER_LENGTH][ARRAY_LENGTH] = 0.8, 0.8
+                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH] = 0.2, 0.2
+                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH] = 0.8, 0.8
             else:
                 print("Error in CRDL.py - addSignalInfor()")
         # 3-way intersection
@@ -299,9 +284,9 @@ class IntelliLight(RLAgent):
         return ActionType.CHANGING_KEEPING
 
     def replay(self):
-        if self.exp_memory.len() < SAMPLE_SIZE:
+        if self.exp_memory.len() < GlobalVariables.SAMPLE_SIZE:
             return
-        minibatch =  self.exp_memory.sample(SAMPLE_SIZE)    
+        minibatch =  self.exp_memory.sample(GlobalVariables.SAMPLE_SIZE)    
         batch_images = []
         batch_lane_features = []
         batch_phases = []
@@ -309,7 +294,7 @@ class IntelliLight(RLAgent):
         for state_, action_, reward_, next_state_ in minibatch:
             next_state_as_input_ = [np.array([next_state_[0]]), np.array([next_state_[1]]), next_state_[2]]
             qs = self.model.predict([next_state_as_input_])
-            target = reward_ + GAMMA*np.amax(qs[0])
+            target = reward_ + GlobalVariables.GAMMA*np.amax(qs[0])
             state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
             target_f = self.model.predict(state_as_input_)
             target_f[0][action_] = target
@@ -319,7 +304,7 @@ class IntelliLight(RLAgent):
             batch_targets.append(target_f[0])
 
         self.model.fit([np.array(batch_images), np.array(batch_lane_features), np.array(batch_phases)], np.array(batch_targets), 
-                            epochs=EPOCHS, batch_size=BATCH_SIZE, shuffle=False, verbose=0, validation_split=0.3)
+                            epochs=GlobalVariables.EPOCHS, batch_size=GlobalVariables.BATCH_SIZE, shuffle=False, verbose=0, validation_split=0.3)
 
     def makeAction(self, state):
         state_ = self.processState(state)

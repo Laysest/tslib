@@ -7,12 +7,13 @@ import random
 import sys
 import sumolib
 from controller import ActionType
+from GlobalVariables import GlobalVariables
+import tensorflow as tf
 
 MAX_INT = 9999999
-EXPLORE_PROBABILITY = 0.05
 
 class TrafficLight:
-    def __init__(self, tfID, algorithm='IntelliLight', yellow_duration=3, traci=None, cycle_control=5, config=None):
+    def __init__(self, tfID, algorithm='CDRL', yellow_duration=3, traci=None, cycle_control=5, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
         self.yellow_duration = yellow_duration
@@ -36,6 +37,9 @@ class TrafficLight:
         else:
             print("Must implement method named %s" % algorithm)
 
+
+        self.writer = tf.summary.create_file_writer('./logs/train/%s' % tfID)
+
         self.reset()
 
     def setLogic(self):
@@ -45,11 +49,11 @@ class TrafficLight:
             Restart the logic at phase 0
         """
         self.traci.trafficlight.setPhase(self.id, 0)
+        self.current_phase = 0
         self.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
     
     def reset(self):
         self.control_actions = []
-        self.current_phase = self.traci.trafficlight.getPhase(self.id)
         self.setLogic()
         self.last_action, self.last_state = None, None
         self.last_action_is_change = 0
@@ -72,7 +76,7 @@ class TrafficLight:
         return {'tfID': self.id, 'traci': self.traci, 'lanes': self.lanes, 'current_logic': current_logic, 
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'last_vehs': vehs}
 
-    def update(self, is_train=False):
+    def update(self, is_train=False, pretrain=False):
     #   if len = 0 => no action in queue:
     #       get action by state
     #       if action = True:
@@ -90,7 +94,7 @@ class TrafficLight:
             # if is training:
             #     check to explore
             if is_train:
-                if random.uniform(0, 1) <= EXPLORE_PROBABILITY:
+                if pretrain or (random.uniform(0, 1) <= GlobalVariables.EXPLORE_PROBABILITY):
                     action = random.randint(0, 1)
                 else:
                     action = self.controller.makeAction(cur_state)
@@ -99,12 +103,17 @@ class TrafficLight:
                     # compute reward
                     reward = self.controller.computeReward(cur_state)
                     self.controller.exp_memory.add([self.last_state, self.last_action, reward, self.controller.processState(cur_state)])
+                    # plot reward
+                    if not pretrain:
+                        with self.writer.as_default():
+                            tf.summary.scalar('reward', reward, step=GlobalVariables.step)
+
                 self.last_state, self.last_action = self.controller.processState(cur_state), action
             else:
                 action = self.controller.makeAction(cur_state)
 
             if self.action_type == ActionType.CHOICE_OF_PHASE:
-                # handle action type of CDRL:
+                # handle action type of CHOICE_OF_PHASE:
                 if cur_state['traci'].trafficlight.getPhase(cur_state['tfID']) != action:
                     to_change = 1
                 else:
@@ -124,7 +133,7 @@ class TrafficLight:
             for veh in vehs:
                 total_delay += 1 - cur_state['traci'].vehicle.getSpeed(veh) / cur_state['traci'].vehicle.getAllowedSpeed(veh)
             self.last_total_delay = total_delay
-
+        
             if to_change == 1:
                 current_phase_ = self.traci.trafficlight.getPhase(self.id)
                 if current_phase_ < 3:

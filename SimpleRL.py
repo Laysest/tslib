@@ -3,9 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten
 from tensorflow.keras.optimizers import Adam
-
-ACTION_SPACE = 2
-STATE_SPACE = 2
+from GlobalVariables import GlobalVariables
 
 class SimpleRL(RLAgent):
     
@@ -42,13 +40,13 @@ class SimpleRL(RLAgent):
             return the model in keras
         """
         model = Sequential()
-        model.add(Dense(16, input_dim=STATE_SPACE))
+        model.add(Dense(16, input_dim=GlobalVariables.STATE_SPACE))
         model.add(Activation('relu'))
         model.add(Dense(32))
         model.add(Activation('relu'))
         model.add(Dense(32))
         model.add(Activation('relu'))
-        model.add(Dense(ACTION_SPACE))
+        model.add(Dense(GlobalVariables.ACTION_SPACE))
         model.add(Activation('linear'))
         model.compile(loss='mean_squared_error', optimizer='adam')
 
