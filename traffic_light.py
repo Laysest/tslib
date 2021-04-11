@@ -54,6 +54,7 @@ class TrafficLight:
         self.last_action, self.last_state = None, None
         self.last_action_is_change = 0
         self.last_total_delay = 0
+        self.last_list_veh = []
         self.action_type = self.controller.actionType()
 
     def getState(self):
@@ -62,9 +63,14 @@ class TrafficLight:
         """
         all_logic_ = self.traci.trafficlight.getAllProgramLogics(self.id)[0]            
         current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        
+        lanes_unique_ = list(dict.fromkeys(self.lanes))
+        vehs = []
+        for lane in lanes_unique_:
+            vehs.extend(self.traci.lane.getLastStepVehicleIDs(lane))
 
         return {'tfID': self.id, 'traci': self.traci, 'lanes': self.lanes, 'current_logic': current_logic, 
-                'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay}
+                'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'last_vehs': vehs}
 
     def update(self, is_train=False):
     #   if len = 0 => no action in queue:

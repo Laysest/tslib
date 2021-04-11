@@ -2,7 +2,7 @@ from RLAgent import RLAgent
 from controller import ActionType
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D, Concatenate
 from tensorflow.keras.optimizers import Adam
 import numpy as np
 np.set_printoptions(threshold=np.inf)
@@ -19,7 +19,9 @@ MAX_RED_VEHICLE = 30
 ARRAY_LENGTH = 9
 CENTER_LENGTH = 1
 MAP_SIZE = (2*(ARRAY_LENGTH + CENTER_LENGTH), 2*(ARRAY_LENGTH + CENTER_LENGTH))
-STATE_SPACE = (MAP_SIZE[0], MAP_SIZE[1], 1)
+MAP_SPACE = (MAP_SIZE[0], MAP_SIZE[1], 1)
+FEATURE_SPACE = (8*4)
+PHASE_SPACE = (1)
 
 LENGTH_CELL = 5
 
@@ -44,43 +46,54 @@ class IntelliLight(RLAgent):
 
     def computeReward(self, state):
         reward = 0
-
-        # penalty for change signal
-        reward -= 0.1*state['last_action_is_change']
         
-        # get list vehicles
         lanes = list(dict.fromkeys(state['lanes']))
-        vehs = []
+
+        # penalty for queue lengths:
+        L = 0
         for lane in lanes:
-            vehs.extend(state['traci'].lane.getLastStepVehicleIDs(lane))
-        
-        # penalty for teleports
-        num_veh_teleporting = 0
-        vehs_teleporting = state['traci'].simulation.getStartingTeleportIDList()
-        for veh in vehs:
-            if veh in vehs_teleporting:
-                num_veh_teleporting += 1
-        reward -= 0.1*num_veh_teleporting
-        
-        # penalty for emergency stops
-        num_veh_emergency_stop = 0
-        vehs_emergency_stop = state['traci'].simulation.getEmergencyStoppingVehiclesIDList()
-        for veh in vehs:
-            if veh in vehs_emergency_stop:
-                num_veh_emergency_stop += 1
-        reward -= 0.2*num_veh_emergency_stop
+            L += state['traci'].lane.getLastStepHaltingNumber(lane)
+        reward -= 0.25 * L
 
         # penalty for delay
-        total_delay = 0
-        for veh in vehs:
-            total_delay += 1 - state['traci'].vehicle.getSpeed(veh) / state['traci'].vehicle.getAllowedSpeed(veh)
-        reward -= 0.3*total_delay
+        D = 0
+        for lane in lanes:
+            D += 1 - state['traci'].lane.getLastStepMeanSpeed(lane) / state['traci'].lane.getMaxSpeed(lane)
+        reward -= 0.25*D
 
         # penalty for waiting time
-        total_waiting_time = 0
-        for veh in vehs:
-            total_waiting_time += state['traci'].vehicle.getWaitingTime(veh)
-        reward -= 0.3*total_waiting_time
+        W = 0
+        for lane in lanes:
+            W += state['traci'].lane.getWaitingTime(lane) / 60.0
+        reward -= 0.25*W
+
+        # penalty for change
+        reward -= 5*state['last_action_is_change']
+
+        # reward for number vehicles
+        # TODO -- change to use class Vehicle
+        N = 0
+        vehs = []
+        vehs_passed = []
+        for lane in lanes:
+            vehs.extend(state['traci'].lane.getLastStepVehicleIDs(lane))
+        for veh in state['last_vehs']:
+            # if a veh in last_vehs but not in current vehs => passed
+            if veh not in vehs:
+                N += 1
+                vehs_passed.append(vehs)
+        reward += N
+
+        # reward for total travel time of the vehicles passed
+        # TODO -- use class Vehicle
+        # ....
+        T = 0
+        # for veh in vehs_passed
+        #     try:
+        #         pass
+        #     except:
+        #         pass
+        # ....
 
         return reward
 
@@ -89,26 +102,28 @@ class IntelliLight(RLAgent):
             return the model in keras
         """
         # model = Sequential()
-        input_ = Input(shape=STATE_SPACE)
-        phase_ = Input(shape=(1))
+        map_ = Input(shape=MAP_SPACE)
+        lane_features_ = Input(shape=FEATURE_SPACE)
+        # TODO -- FEATURE_SPACE depend on the intersection
+        phase_ = Input(shape=PHASE_SPACE)
         
-        image_1_ = Conv2D(32, (3, 3), activation='relu')(input_)
-        polling_1_ = MaxPooling2D((2, 2))(image_1_)
-        flatten_1_ = Flatten()(polling_1_)
-        dense_1_1_ = Dense(128, activation='relu')(flatten_1_)
-        dense_2_1_ = Dense(32, activation='relu')(dense_1_1_)
-        out_1_ = Dense(ACTION_SPACE, activation='linear')(dense_2_1_)
+        conv1_ = Conv2D(filters=32, kernel_size=(8, 8), strides=(4, 4), activation="relu")(map_)
+        conv2_ = Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation="relu")(conv1_)
+        map_feature_ = Flatten()(conv2_)
 
-        image_2_ = Conv2D(32, (3, 3), activation='relu')(input_)
-        polling_2_ = MaxPooling2D((2, 2))(image_2_)
-        flatten_2_ = Flatten()(polling_2_)
-        dense_1_2_ = Dense(128, activation='relu')(flatten_2_)
-        dense_2_2_ = Dense(32, activation='relu')(dense_1_2_)
-        out_2_ = Dense(ACTION_SPACE, activation='linear')(dense_2_2_)
+        features_ = Concatenate()([lane_features_, map_feature_])
+                  
+        shared_hidden_1_ = Dense(64, activation='relu')(features_)
 
-        out = tf.where(phase_ == 0, out_1_, out_2_)
+        separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_1_)
+        output_left_ = Dense(ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
 
-        model = tf.keras.Model(inputs=[input_, phase_], outputs=out)
+        separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_1_)
+        output_right_ = Dense(ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
+
+        out = tf.where(phase_ == 0, output_left_, output_right_)
+
+        model = tf.keras.Model(inputs=[map_, lane_features_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
@@ -126,7 +141,6 @@ class IntelliLight(RLAgent):
             [N, E, None, W]
 
         """
-        
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
@@ -142,10 +156,35 @@ class IntelliLight(RLAgent):
             from general state returned from traffic light
             process to return position_map
         """
-        map_ = [np.reshape(self.buildMap(traci=state['traci']), STATE_SPACE)] # reshape to (SPACE, 1)
+        map_ = np.reshape(self.buildMap(traci=state['traci']), MAP_SPACE) # reshape to (SPACE, 1)
+        
+        lane_features_ = self.getLaneFeatures(traci=state['traci'], lanes_in_phases=state['lanes'], current_logic=state['current_logic'])
+
         phase = state['traci'].trafficlight.getPhase(self.tfID)
-        state_ = [np.array(map_), np.array([phase])]
+        state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]
         return state_
+
+    def getLaneFeatures(self, traci=None, lanes_in_phases=None, current_logic=None):
+        lanes = list(dict.fromkeys(lanes_in_phases))
+        lane_features_ = []
+
+        # queue length
+        for lane in lanes:
+            lane_features_.append(traci.lane.getLastStepHaltingNumber(lane))
+        
+        # waiting time
+        for lane in lanes:
+            lane_features_.append(traci.lane.getWaitingTime(lane))
+
+        # phase vector
+        for lane in lanes:
+            lane_features_.append(1 if current_logic[lanes_in_phases.index(lane)].lower() == 'g' else 0)
+
+        # number of vehicles
+        for lane in lanes:
+            lane_features_.append(traci.lane.getLastStepVehicleNumber(lane))
+
+        return lane_features_
 
     def buildMap(self, traci=None):
         """
@@ -263,25 +302,29 @@ class IntelliLight(RLAgent):
         if self.exp_memory.len() < SAMPLE_SIZE:
             return
         minibatch =  self.exp_memory.sample(SAMPLE_SIZE)    
-        batch_states = []
+        batch_images = []
+        batch_lane_features = []
+        batch_phases = []
         batch_targets = []
         for state_, action_, reward_, next_state_ in minibatch:
-            qs = self.model.predict([next_state_])
+            next_state_as_input_ = [np.array([next_state_[0]]), np.array([next_state_[1]]), next_state_[2]]
+            qs = self.model.predict([next_state_as_input_])
             target = reward_ + GAMMA*np.amax(qs[0])
-            target_f = self.model.predict([state_])
+            state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
+            target_f = self.model.predict(state_as_input_)
             target_f[0][action_] = target
-            batch_states.append(state_)
+            batch_images.append(state_[0])
+            batch_lane_features.append(state_[1])
+            batch_phases.append(state_[2][0])
             batch_targets.append(target_f[0])
-        # for i in range(len(batch_states)):
-        #     print(np.array(batch_states[i][0]).shape, np.array(batch_states[i][1]).shape)
-        # self.model.train_on_batch(batch_states, batch_targets)
-        print("replay")
-        for epoch in range(EPOCHS):
-            self.model.train_on_batch(batch_states, batch_targets)
-            # self.model.train_on_batch(batch_states, batch_targets)
+
+        self.model.fit([np.array(batch_images), np.array(batch_lane_features), np.array(batch_phases)], np.array(batch_targets), 
+                            epochs=EPOCHS, batch_size=BATCH_SIZE, shuffle=False, verbose=0, validation_split=0.3)
 
     def makeAction(self, state):
         state_ = self.processState(state)
-        # print(np.array(state_[0]).shape, np.array(state_[1]).shape) 
-        out_ = self.model.predict([state_])[0]
+        state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
+        out_ = self.model.predict(state_as_input_)[0]
         return np.argmax(out_)
+
+    

@@ -6,7 +6,7 @@ from sumolib.miscutils import getFreeSocketPort
 import numpy as np
 import sys
 
-INTERVAL = 50
+INTERVAL = 300
 
 class Environment():
     def __init__(self, config):
@@ -64,7 +64,7 @@ class Environment():
                 else:
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].reset()
-                count = 0
+                count = 1
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     traci.simulationStep()
                     for i in range(len(self.traffic_lights)):

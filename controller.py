@@ -5,9 +5,9 @@ class ActionType(Enum):
     CHANGING_KEEPING = 2
 
 # class ControlAlgorithm(Enum):
-#     FixedTime = 1 # Todo
+#     FixedTime = 1 # TODO
 #     SOTL = 2
-#     MaxPressure = 3 # Todo
+#     MaxPressure = 3 # TODO
 #     CDRL = 4
 #     VFB = 5
 #     IntelliLight = 6
