@@ -1,6 +1,7 @@
 import tensorflow as tf
+import traci
 
-class GlobalVariables:
+class GloVars:
     ACTION_SPACE = 2
     EXPLORE_PROBABILITY = 0.05
     ARRAY_LENGTH = 9
@@ -14,5 +15,5 @@ class GlobalVariables:
     SAMPLE_SIZE = 256
     INTERVAL = 300
     MEMORY_SIZE = 2048
-
     step = 0
+    traci = traci

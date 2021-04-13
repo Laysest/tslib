@@ -9,12 +9,13 @@ np.set_printoptions(threshold=np.inf)
 import math
 import sumolib
 import sys
-from GlobalVariables import GlobalVariables
+from GloVars import GloVars
 
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
+traci = GloVars.traci
 
 class CDRL(RLAgent):
     def __init__(self, config=None, tfID=None):
@@ -25,7 +26,7 @@ class CDRL(RLAgent):
         nodes_id = [node.getID() for node in nodes]
         print("%s: %s" % (center.getID(), str(nodes_id)))
 
-    def computeReward(self, state):
+    def computeReward(self, state, last_state):
         reward = 0
 
         # penalty for change signal
@@ -35,11 +36,11 @@ class CDRL(RLAgent):
         lanes = list(dict.fromkeys(state['lanes']))
         vehs = []
         for lane in lanes:
-            vehs.extend(state['traci'].lane.getLastStepVehicleIDs(lane))
+            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
         
         # penalty for teleports
         num_veh_teleporting = 0
-        vehs_teleporting = state['traci'].simulation.getStartingTeleportIDList()
+        vehs_teleporting = traci.simulation.getStartingTeleportIDList()
         for veh in vehs:
             if veh in vehs_teleporting:
                 num_veh_teleporting += 1
@@ -47,7 +48,7 @@ class CDRL(RLAgent):
         
         # penalty for emergency stops
         num_veh_emergency_stop = 0
-        vehs_emergency_stop = state['traci'].simulation.getEmergencyStoppingVehiclesIDList()
+        vehs_emergency_stop = traci.simulation.getEmergencyStoppingVehiclesIDList()
         for veh in vehs:
             if veh in vehs_emergency_stop:
                 num_veh_emergency_stop += 1
@@ -56,13 +57,13 @@ class CDRL(RLAgent):
         # penalty for delay
         total_delay = 0
         for veh in vehs:
-            total_delay += 1 - state['traci'].vehicle.getSpeed(veh) / state['traci'].vehicle.getAllowedSpeed(veh)
+            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
         reward -= 0.3*total_delay
 
         # penalty for waiting time
         total_waiting_time = 0
         for veh in vehs:
-            total_waiting_time += state['traci'].vehicle.getWaitingTime(veh)
+            total_waiting_time += traci.vehicle.getWaitingTime(veh)
         reward -= 0.3*total_waiting_time
 
         return reward
@@ -72,12 +73,12 @@ class CDRL(RLAgent):
             return the model in keras
         """
         model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=GlobalVariables.STATE_SPACE))
+        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=GloVars.STATE_SPACE))
         model.add(MaxPooling2D((2, 2)))
         model.add(Flatten())
         model.add(Dense(128, activation='relu'))
         model.add(Dense(32, activation='relu'))
-        model.add(Dense(GlobalVariables.ACTION_SPACE, activation='linear'))
+        model.add(Dense(GloVars.ACTION_SPACE, activation='linear'))
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
@@ -111,10 +112,10 @@ class CDRL(RLAgent):
             from general state returned from traffic light
             process to return position_map
         """
-        return np.reshape(self.buildMap(traci=state['traci']), GlobalVariables.STATE_SPACE) # reshape to (SPACE, 1)
+        return np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
 
 
-    def buildMap(self, traci=None):
+    def buildMap(self):
         """
             this function to return a 2D matrix indicating information on vehicles' positions
         """
@@ -124,20 +125,20 @@ class CDRL(RLAgent):
 
         
 
-        position_mapped = np.zeros(GlobalVariables.MAP_SIZE)
+        position_mapped = np.zeros(GloVars.MAP_SIZE)
 
         # handle the North side
         if neightbor_nodes[0] != None:
             incoming_edge_from_north = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[0].getID()][0]
             outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
             for i, lane in enumerate(incoming_edge_from_north.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[j][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[j][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
         
 
         # handle the East side
@@ -145,45 +146,45 @@ class CDRL(RLAgent):
             incoming_edge_from_east = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[1].getID()][0]
             outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
             for i, lane in enumerate(incoming_edge_from_east.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + j + 1] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + j + 1] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
 
         # handle the South side
         if neightbor_nodes[2] != None:
             incoming_edge_from_south = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[2].getID()][0]
             outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
             for i, lane in enumerate(incoming_edge_from_south.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)[::-1]
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[j + GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
 
             for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[j + GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + 1][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
 
         # handle the West side
         if neightbor_nodes[3] != None:
             incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
             outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
             for i, lane in enumerate(incoming_edge_from_west.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=True)
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
             for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
-                arr_ = self.buildArray(traci=traci, lane=lane.getID(), incoming=False)[::-1]
-                for j in range(GlobalVariables.ARRAY_LENGTH):
-                    position_mapped[GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
+                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+                for j in range(GloVars.ARRAY_LENGTH):
+                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
         return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
     
-    def buildArray(self, traci=None, lane=None, incoming=True):
-        arr = np.zeros(GlobalVariables.ARRAY_LENGTH)
+    def buildArray(self, lane=None, incoming=True):
+        arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
         lane_length = traci.lane.getLength(lane)
         vehs = traci.lane.getLastStepVehicleIDs(lane)
@@ -191,16 +192,16 @@ class CDRL(RLAgent):
             veh_distance = traci.vehicle.getLanePosition(veh)
 
             if incoming:
-                veh_distance -= lane_length - GlobalVariables.LENGTH_CELL*GlobalVariables.ARRAY_LENGTH
+                veh_distance -= lane_length - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
             if veh_distance < 0:
                 continue
             index = math.floor(veh_distance/5)
 
-            if index >= GlobalVariables.ARRAY_LENGTH:
+            if index >= GloVars.ARRAY_LENGTH:
                 continue
             veh_length = traci.vehicle.getLength(veh)
             for i in range(math.ceil(veh_length/5)):
-                if 0 <= index - i < GlobalVariables.ARRAY_LENGTH:
+                if 0 <= index - i < GloVars.ARRAY_LENGTH:
                     arr[index - i] = 1
 
         return arr
@@ -212,11 +213,11 @@ class CDRL(RLAgent):
         if None not in neightbor_nodes:
             # cur_phase == 0 ~ allow N and S
             if cur_phase == 0:
-                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH] = 0.8, 0.8
-                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH] = 0.2, 0.2
+                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH] = 0.8, 0.8
+                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH] = 0.2, 0.2
             elif cur_phase == 2:
-                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH] = 0.2, 0.2
-                position_mapped[GlobalVariables.ARRAY_LENGTH][GlobalVariables.ARRAY_LENGTH + GlobalVariables.CENTER_LENGTH], position_mapped[GlobalVariables.ARRAY_LENGTH+GlobalVariables.CENTER_LENGTH][GlobalVariables.ARRAY_LENGTH] = 0.8, 0.8
+                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH] = 0.2, 0.2
+                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH] = 0.8, 0.8
             else:
                 print("Error in CRDL.py - addSignalInfor()")
         # 3-way intersection
