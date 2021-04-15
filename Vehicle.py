@@ -1,4 +1,4 @@
-from GloVars import GloVars
+from glo_vars import GloVars
 
 traci = GloVars.traci
 

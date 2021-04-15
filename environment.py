@@ -4,7 +4,7 @@ import sumolib
 from sumolib.miscutils import getFreeSocketPort
 import numpy as np
 import sys
-from GloVars import GloVars
+from glo_vars import GloVars
 import tensorflow as tf
 from Vehicle import Vehicle
 

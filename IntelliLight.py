@@ -10,7 +10,7 @@ np.set_printoptions(threshold=np.inf)
 import math
 import sumolib
 import sys
-from GloVars import GloVars
+from glo_vars import GloVars
 
 traci = GloVars.traci
 

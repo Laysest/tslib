@@ -1,5 +1,7 @@
+"""
+    This file is an simple example to apply available TCSs to a traffic network.
+"""
 from tslib import TSLib
-import tensorflow as tf
 
 # config = {
 #     'net': '4x1-two-way.net.xml',

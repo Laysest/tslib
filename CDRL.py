@@ -9,7 +9,7 @@ np.set_printoptions(threshold=np.inf)
 import math
 import sumolib
 import sys
-from GloVars import GloVars
+from glo_vars import GloVars
 
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4

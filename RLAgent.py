@@ -3,7 +3,7 @@ from collections import deque
 import numpy as np
 import random
 from sklearn.model_selection import train_test_split
-from GloVars import GloVars
+from glo_vars import GloVars
 
 class Memory():
     def __init__(self, max_size):

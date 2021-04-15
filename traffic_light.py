@@ -1,19 +1,24 @@
+"""
+    This file declare TrafficLight class
+"""
+import random
+import sys
+import tensorflow as tf
 from SOTL import SOTL
 from SimpleRL import SimpleRL
 from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
-import random
-import sys
-import sumolib
 from controller import ActionType
-from GloVars import GloVars
-import tensorflow as tf
+from glo_vars import GloVars
 
 MAX_INT = 9999999
 traci = GloVars.traci
 
 class TrafficLight:
+    '''
+        TrafficLight for each intersection having traffic signal control
+    '''
     def __init__(self, tfID, algorithm='IntelliLight', yellow_duration=3, cycle_control=5, config=None):
         self.id = tfID
         self.control_algorithm = algorithm
@@ -38,6 +43,10 @@ class TrafficLight:
 
 
         self.writer = tf.summary.create_file_writer('./logs/train/%s' % tfID)
+        self.current_phase = 0
+        self.last_action, self.last_processed_state, self.last_state = None, None, None
+        self.last_action_is_change = 0
+        self.last_total_delay = 0
 
         self.reset()
 

@@ -1,7 +1,12 @@
-import tensorflow as tf
+"""
+    This file declares a class for global variables
+"""
 import traci
 
 class GloVars:
+    """
+        This class contain global variables and no function.
+    """
     ACTION_SPACE = 2
     EXPLORE_PROBABILITY = 0.05
     ARRAY_LENGTH = 9

@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten
 from tensorflow.keras.optimizers import Adam
-from GloVars import GloVars
+from glo_vars import GloVars
 
 traci = GloVars.traci
 
