@@ -1,4 +1,7 @@
 from controller import Controller, ActionType
+from glo_vars import GloVars
+
+traci = GloVars.traci
 
 MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
@@ -14,7 +17,7 @@ class SOTL(Controller):
         current_logic = state['current_logic']
         num_veh_ordered = []
         for lane in state['lanes']:
-            num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
+            num_veh_ordered.append(traci.lane.getLastStepVehicleNumber(lane))
         
         return current_logic, num_veh_ordered
 
