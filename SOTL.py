@@ -1,4 +1,7 @@
-from controller import Controller
+from controller import Controller, ActionType
+from glo_vars import GloVars
+
+traci = GloVars.traci
 
 MIN_GREEN_VEHICLE = 20
 MAX_RED_VEHICLE = 30
@@ -14,15 +17,12 @@ class SOTL(Controller):
         current_logic = state['current_logic']
         num_veh_ordered = []
         for lane in state['lanes']:
-            num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
+            num_veh_ordered.append(traci.lane.getLastStepVehicleNumber(lane))
         
         return current_logic, num_veh_ordered
 
 
     def makeAction(self, state_):
-        """
-            return action based on SOTL's rules & current state
-        """
         state = self.processState(state_)
         current_logic, num_veh_ordered = state
         number_veh_on_green_lanes = 0
@@ -38,3 +38,6 @@ class SOTL(Controller):
         if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
             return 1
         return 0
+
+    def actionType(self):
+        return ActionType.CHANGING_KEEPING

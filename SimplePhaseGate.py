@@ -1,10 +1,11 @@
 from RLAgent import RLAgent
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
-from keras.optimizers import Adam
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation, Flatten
+from tensorflow.keras.optimizers import Adam
 
-ACTION_SPACE = 2
-STATE_SPACE = 2
+GloVars.STATE_SPACE = 2
+traci = GloVars.traci
 
 class SimplePhaseGate(RLAgent):
     def processState(self, state):
@@ -15,7 +16,7 @@ class SimplePhaseGate(RLAgent):
 
         num_veh_ordered = []
         for lane in state['lanes']:
-            num_veh_ordered.append(state['traci'].lane.getLastStepVehicleNumber(lane))
+            num_veh_ordered.append(traci.lane.getLastStepVehicleNumber(lane))
 
         number_veh_on_green_lanes = 0
         number_veh_on_red_lanes = 0
@@ -29,10 +30,10 @@ class SimplePhaseGate(RLAgent):
 
         return [number_veh_on_green_lanes, number_veh_on_red_lanes]
     
-    def computeReward(self, state):
+    def computeReward(self, state, last_state):
         reward = 0
         for lane in state['lanes']:
-            reward -= state['traci'].lane.getLastStepHaltingNumber(lane)
+            reward -= traci.lane.getLastStepHaltingNumber(lane)
         return reward
 
     def buildModel(self):
@@ -40,13 +41,13 @@ class SimplePhaseGate(RLAgent):
             return the model in keras
         """
         model = Sequential()
-        model.add(Dense(16, input_dim=STATE_SPACE))
+        model.add(Dense(16, input_dim=GloVars.STATE_SPACE))
         model.add(Activation('relu'))
         model.add(Dense(32))
         model.add(Activation('relu'))
         model.add(Dense(32))
         model.add(Activation('relu'))
-        model.add(Dense(ACTION_SPACE))
+        model.add(Dense(GloVars.ACTION_SPACE))
         model.add(Activation('linear'))
         model.compile(loss='mean_squared_error', optimizer='adam')
 

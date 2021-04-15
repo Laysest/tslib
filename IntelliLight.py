@@ -1,7 +1,8 @@
 from RLAgent import RLAgent
+from controller import ActionType
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D, Concatenate
 from tensorflow.keras.optimizers import Adam
 import numpy as np
 np.set_printoptions(threshold=np.inf)
@@ -11,13 +12,17 @@ import sumolib
 import sys
 from glo_vars import GloVars
 
+traci = GloVars.traci
+
+FEATURE_SPACE = (8*4)
+PHASE_SPACE = (1)
+
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4
 # we assume that there are only 2 red/green phases, user can change this depend on their config
 NUM_OF_RED_GREEN_PHASES = 2
-traci = GloVars.traci
 
-class CDRL(RLAgent):
+class IntelliLight(RLAgent):
     def __init__(self, config=None, tfID=None):
         RLAgent.__init__(self)
         self.config = config
@@ -28,43 +33,50 @@ class CDRL(RLAgent):
 
     def computeReward(self, state, last_state):
         reward = 0
-
-        # penalty for change signal
-        reward -= 0.1*state['last_action_is_change']
         
-        # get list vehicles
         lanes = list(dict.fromkeys(state['lanes']))
-        vehs = []
+
+        # penalty for queue lengths:
+        L = 0
         for lane in lanes:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-        
-        # penalty for teleports
-        num_veh_teleporting = 0
-        vehs_teleporting = traci.simulation.getStartingTeleportIDList()
-        for veh in vehs:
-            if veh in vehs_teleporting:
-                num_veh_teleporting += 1
-        reward -= 0.1*num_veh_teleporting
-        
-        # penalty for emergency stops
-        num_veh_emergency_stop = 0
-        vehs_emergency_stop = traci.simulation.getEmergencyStoppingVehiclesIDList()
-        for veh in vehs:
-            if veh in vehs_emergency_stop:
-                num_veh_emergency_stop += 1
-        reward -= 0.2*num_veh_emergency_stop
+            L += traci.lane.getLastStepHaltingNumber(lane)
+        reward -= 0.25 * L
 
         # penalty for delay
-        total_delay = 0
-        for veh in vehs:
-            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
-        reward -= 0.3*total_delay
+        D = 0
+        for lane in lanes:
+            D += 1 - traci.lane.getLastStepMeanSpeed(lane) / traci.lane.getMaxSpeed(lane)
+        reward -= 0.25*D
 
         # penalty for waiting time
-        total_waiting_time = 0
-        for veh in vehs:
-            total_waiting_time += traci.vehicle.getWaitingTime(veh)
-        reward -= 0.3*total_waiting_time
+        W = 0
+        for lane in lanes:
+            W += traci.lane.getWaitingTime(lane) / 60.0
+        reward -= 0.25*W
+
+        # penalty for change
+        reward -= 5*state['last_action_is_change']
+
+        # reward for number vehicles
+        N = 0
+        vehs_id_passed = []
+        for veh_id_ in last_state['vehs_id']:
+            # if a veh in vehs_id but not in current vehs => passed
+            if veh_id_ not in state['vehs_id']:
+                N += 1
+                vehs_id_passed.append(veh_id_)
+        reward += N
+
+        # reward for total travel time of the vehicles passed
+        # TODO -- use class Vehicle
+        # ....
+        T = 0
+        # for veh in vehs_passed
+        #     try:
+        #         pass
+        #     except:
+        #         pass
+        # ....
 
         return reward
 
@@ -72,13 +84,29 @@ class CDRL(RLAgent):
         """
             return the model in keras
         """
-        model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=GloVars.STATE_SPACE))
-        model.add(MaxPooling2D((2, 2)))
-        model.add(Flatten())
-        model.add(Dense(128, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(GloVars.ACTION_SPACE, activation='linear'))
+        # model = Sequential()
+        map_ = Input(shape=GloVars.STATE_SPACE)
+        lane_features_ = Input(shape=FEATURE_SPACE)
+        # TODO -- FEATURE_SPACE depend on the intersection
+        phase_ = Input(shape=PHASE_SPACE)
+        
+        conv1_ = Conv2D(filters=32, kernel_size=(8, 8), strides=(4, 4), activation="relu")(map_)
+        conv2_ = Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation="relu")(conv1_)
+        map_feature_ = Flatten()(conv2_)
+
+        features_ = Concatenate()([lane_features_, map_feature_])
+                  
+        shared_hidden_1_ = Dense(64, activation='relu')(features_)
+
+        separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_1_)
+        output_left_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
+
+        separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_1_)
+        output_right_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
+
+        out = tf.where(phase_ == 0, output_left_, output_right_)
+
+        model = tf.keras.Model(inputs=[map_, lane_features_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
@@ -96,7 +124,6 @@ class CDRL(RLAgent):
             [N, E, None, W]
 
         """
-        
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
@@ -112,8 +139,35 @@ class CDRL(RLAgent):
             from general state returned from traffic light
             process to return position_map
         """
-        return np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
+        map_ = np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
+        
+        lane_features_ = self.getLaneFeatures(lanes_in_phases=state['lanes'], current_logic=state['current_logic'])
 
+        phase = traci.trafficlight.getPhase(self.tfID)
+        state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]
+        return state_
+
+    def getLaneFeatures(self, lanes_in_phases=None, current_logic=None):
+        lanes = list(dict.fromkeys(lanes_in_phases))
+        lane_features_ = []
+
+        # queue length
+        for lane in lanes:
+            lane_features_.append(traci.lane.getLastStepHaltingNumber(lane))
+        
+        # waiting time
+        for lane in lanes:
+            lane_features_.append(traci.lane.getWaitingTime(lane))
+
+        # phase vector
+        for lane in lanes:
+            lane_features_.append(1 if current_logic[lanes_in_phases.index(lane)].lower() == 'g' else 0)
+
+        # number of vehicles
+        for lane in lanes:
+            lane_features_.append(traci.lane.getLastStepVehicleNumber(lane))
+
+        return lane_features_
 
     def buildMap(self):
         """
@@ -122,8 +176,6 @@ class CDRL(RLAgent):
         # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
         neightbor_nodes, center_node = self.getNodesSortedByDirection()
         incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
-
-        
 
         position_mapped = np.zeros(GloVars.MAP_SIZE)
 
@@ -225,3 +277,37 @@ class CDRL(RLAgent):
             pass
 
         return position_mapped
+    
+    def actionType(self):
+        return ActionType.CHANGING_KEEPING
+
+    def replay(self):
+        if self.exp_memory.len() < GloVars.SAMPLE_SIZE:
+            return
+        minibatch =  self.exp_memory.sample(GloVars.SAMPLE_SIZE)    
+        batch_images = []
+        batch_lane_features = []
+        batch_phases = []
+        batch_targets = []
+        for state_, action_, reward_, next_state_ in minibatch:
+            next_state_as_input_ = [np.array([next_state_[0]]), np.array([next_state_[1]]), next_state_[2]]
+            qs = self.model.predict([next_state_as_input_])
+            target = reward_ + GloVars.GAMMA*np.amax(qs[0])
+            state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
+            target_f = self.model.predict(state_as_input_)
+            target_f[0][action_] = target
+            batch_images.append(state_[0])
+            batch_lane_features.append(state_[1])
+            batch_phases.append(state_[2][0])
+            batch_targets.append(target_f[0])
+
+        self.model.fit([np.array(batch_images), np.array(batch_lane_features), np.array(batch_phases)], np.array(batch_targets), 
+                            epochs=GloVars.EPOCHS, batch_size=GloVars.BATCH_SIZE, shuffle=False, verbose=0, validation_split=0.3)
+
+    def makeAction(self, state):
+        state_ = self.processState(state)
+        state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
+        out_ = self.model.predict(state_as_input_)[0]
+        return np.argmax(out_)
+
+    
