@@ -36,8 +36,8 @@ class SOTL(Controller):
             else:
                 print(state, "Error")
         if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-            return 1
-        return 0
+            return 1, [1]
+        return 0, [0]
 
     def actionType(self):
         return ActionType.CHANGING_KEEPING

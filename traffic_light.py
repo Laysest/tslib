@@ -75,37 +75,58 @@ class TrafficLight:
         """
         all_logic_ = traci.trafficlight.getAllProgramLogics(self.id)[0]            
         current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        
+        current_phase_index = traci.trafficlight.getPhase(self.id)     
         lanes_unique_ = list(dict.fromkeys(self.lanes))
         vehs_id = []
         for lane in lanes_unique_:
             vehs_id.extend(traci.lane.getLastStepVehicleIDs(lane))
 
-        return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 
+        return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
 
-    def update(self, is_train=False, pretrain=False):
-    #   if len = 0 => no action in queue:
-    #       get action by state
-    #       if action = True:
-    #           change & add to queue including yellow and next cycle
-    #       else:
-    #           add to queue next cycle
-    #   if len >= 0 => have action in queue:
-    #       -1 time length
-    #           if time length == 0:
-    #               that means finish the cycle => delete in queue
-    #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
+    # def processStackControls(self, stack):
+    #     stack_ = []
 
-        if len(self.control_actions) <= 0: 
+    #     return
+
+    def update(self, is_train=False, pretrain=False):
+        # TODO - new update function to suit for a stack of actions and more phases of a cycle
+        # ....
+        # every changing action has a yellow phase following
+        # control_actions = [{'type': '1', 'length': 3, executed: True/False}, {'type': '1', 'length': 5, executed: True/False}]
+        #                    => change -> keep this phase (yellow phase) for 3 seconds        => change -> keep this phase (green/red) for 5 seconds
+
+        #   if len = 0 => no action in queue:
+        #       get action by state
+        #       process action & add into the control_actions
+        #   if len >= 0 => have action in queue:
+        #       if not yet execute => execute by +1 phase index
+        #       -1 time length
+        #           if time length == 0:
+        #               that means finish the cycle => delete in queue
+        
+
+        #   if len = 0 => no action in queue:
+        #       get action by state
+        #       if action = True:
+        #           change & add to queue including yellow and next cycle
+        #       else:
+        #           add to queue next cycle
+        #   if len >= 0 => have action in queue:
+        #       -1 time length
+        #           if time length == 0:
+        #               that means finish the cycle => delete in queue
+        #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
+
+        if len(self.control_actions) <= 0:
             cur_state = self.getState()
             # if is training:
             #     check to explore
             if is_train:
                 if pretrain or (random.uniform(0, 1) <= GloVars.EXPLORE_PROBABILITY):
-                    action = random.randint(0, 1)
+                    action, stack_controls = self.controller.randomAction(cur_state)
                 else:
-                    action = self.controller.makeAction(cur_state)
+                    action, stack_controls = self.controller.makeAction(cur_state)
                 # log last_state, last_action, reward, cur_state
                 if (self.last_processed_state is not None) and (self.last_action is not None) and (self.last_state is not None):
                     # compute reward
@@ -119,7 +140,7 @@ class TrafficLight:
                 self.last_state = cur_state
                 self.last_processed_state, self.last_action = self.controller.processState(cur_state), action
             else:
-                action = self.controller.makeAction(cur_state)
+                action, stack_controls = self.controller.makeAction(cur_state)
 
             if self.action_type == ActionType.CHOICE_OF_PHASE:
                 # handle action type of CHOICE_OF_PHASE:
@@ -133,7 +154,7 @@ class TrafficLight:
             # save measured performance of last state
             self.last_action_is_change = to_change
 
-            # get total delay
+            # get total delay -----------------------------------------------------------------------
             lanes = list(dict.fromkeys(self.lanes))
             vehs = []
             for lane in lanes:
@@ -142,7 +163,8 @@ class TrafficLight:
             for veh in vehs:
                 total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
             self.last_total_delay = total_delay
-        
+            # ---------------------------------------------------------------------------------------
+
             if to_change == 1:
                 current_phase_ = traci.trafficlight.getPhase(self.id)
                 if current_phase_ < 3:
@@ -153,10 +175,10 @@ class TrafficLight:
                     sys.exit()
 
                 self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
-                                            {'type': 'red_green_phase', 'length': self.cycle_control}])
+                                           {'type': 'red_green_phase', 'length': self.cycle_control}])
             else:   
                 self.control_actions.append({'type': 'red_green_phase', 'length': self.cycle_control})
-        
+
         if len(self.control_actions) > 0:
             self.control_actions[0]['length'] -= 1
             if self.control_actions[0]['length'] <= 0:

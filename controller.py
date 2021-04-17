@@ -3,6 +3,7 @@ from enum import Enum
 class ActionType(Enum):
     CHOICE_OF_PHASE = 1
     CHANGING_KEEPING = 2
+    DEFINE_NEXT_CYCLE = 3
 
 # class ControlAlgorithm(Enum):
 #     FixedTime = 1 # TODO
@@ -18,7 +19,7 @@ class Controller:
 
     def makeAction(self, state):
         print("Must <<override> makeAction(state)!!")
-        pass
+        return 0, [0]
 
     def processState(self, state):
         print("Must <<override> processState(state)!!")

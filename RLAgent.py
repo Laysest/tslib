@@ -29,7 +29,7 @@ class RLAgent(Controller):
 
     def processState(self, state):
         print("Must <<override> processState(state)!!")
-        pass
+        return state
 
     def computeReward(self, state, last_state):
         print("Muss <<override>> computeReward(state)")
@@ -54,4 +54,11 @@ class RLAgent(Controller):
     def makeAction(self, state):
         state_ = self.processState(state)
         out_ = self.model.predict(np.array([state_]))[0]
-        return np.argmax(out_)
+        action = np.argmax(out_)
+        is_to_change = 0 if 2*action == state['current_phase_index'] else 1
+        return action, [is_to_change]
+
+    def randomAction(self, state):
+        if random.randint(0, 1) == 0:
+            return 0, [0 if state['current_phase_index'] == 0 else 1]
+        return 1, [0 if state['current_phase_index'] == 2*1 else 1]

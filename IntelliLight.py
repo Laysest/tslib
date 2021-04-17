@@ -10,7 +10,9 @@ np.set_printoptions(threshold=np.inf)
 import math
 import sumolib
 import sys
+import random
 from glo_vars import GloVars
+
 
 traci = GloVars.traci
 
@@ -308,6 +310,12 @@ class IntelliLight(RLAgent):
         state_ = self.processState(state)
         state_as_input_ = [np.array([state_[0]]), np.array([state_[1]]), state_[2]]
         out_ = self.model.predict(state_as_input_)[0]
-        return np.argmax(out_)
+        action = np.argmax(out_)
+        return action, [action]
+
+    def randomAction(self, state):
+        if random.randint(0, 1) == 0:
+            return 0, [0]
+        return 1, [1]
 
     
