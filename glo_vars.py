@@ -22,3 +22,4 @@ class GloVars:
     MEMORY_SIZE = 2048
     step = 0
     traci = traci
+    config = None

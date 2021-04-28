@@ -4,7 +4,9 @@ class ActionType(Enum):
     CHOICE_OF_PHASE = 1
     CHANGING_KEEPING = 2
     DEFINE_NEXT_CYCLE = 3
-
+    CHANGE_PHASE = 4
+    KEEP_PHASE = 5
+    YELLOW_PHASE = 6
 # class ControlAlgorithm(Enum):
 #     FixedTime = 1 # TODO
 #     SOTL = 2
@@ -14,7 +16,8 @@ class ActionType(Enum):
 #     IntelliLight = 6
 
 class Controller:
-    def __init__(self):
+    def __init__(self, cycle_control):
+        self.cycle_control = cycle_control
         pass
 
     def makeAction(self, state):

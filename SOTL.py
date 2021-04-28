@@ -1,6 +1,5 @@
 from controller import Controller, ActionType
 from glo_vars import GloVars
-
 traci = GloVars.traci
 
 MIN_GREEN_VEHICLE = 20
@@ -12,7 +11,7 @@ class SOTL(Controller):
             from general state returned from traffic light
             process to return (current_logic, num_veh_ordered)
             current_logic: 'ggggrrrrgggg' shows status of traffic light
-            num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order  
+            num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order
         """
         current_logic = state['current_logic']
         num_veh_ordered = []
@@ -21,9 +20,8 @@ class SOTL(Controller):
         
         return current_logic, num_veh_ordered
 
-
-    def makeAction(self, state_):
-        state = self.processState(state_)
+    def makeAction(self, state):
+        state = self.processState(state)
         current_logic, num_veh_ordered = state
         number_veh_on_green_lanes = 0
         number_veh_on_red_lanes = 0
@@ -35,9 +33,11 @@ class SOTL(Controller):
                 number_veh_on_green_lanes += num_veh_ordered[i]
             else:
                 print(state, "Error")
-        if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-            return 1, [1]
-        return 0, [0]
+        if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) \
+                or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
+            return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
 
     def actionType(self):
+        #TODO: remove this function
         return ActionType.CHANGING_KEEPING

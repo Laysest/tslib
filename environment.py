@@ -25,7 +25,7 @@ class Environment():
         self.vehicles = []
         self.controllers = []
         self.config = config
-
+        self.traffic_lights = None
     def reset(self):
         self.vehicles = []
 
@@ -34,11 +34,11 @@ class Environment():
         vehs_id = [veh.id for veh in self.vehicles]
         for veh_id_ in traci.simulation.getDepartedIDList():
             if veh_id_ not in vehs_id:
-                self.vehicles.append(Vehicle(veh, now))
+                self.vehicles.append(Vehicle(veh_id_, now))
 
         for veh_id_ in traci.simulation.getArrivedIDList():
             if veh_id_ in vehs_id:
-                self.vehicles[vehs_id.index(veh)].finish()
+                self.vehicles[vehs_id.index(veh_id_)].finish()
 
         for i in range(len(self.vehicles)):
             self.vehicles[i].update()
@@ -71,10 +71,7 @@ class Environment():
             ### Pre-train: ------------------------
             if pretrain_:
                 traci.start(sumo_cmd)
-                self.traffic_lights = [ TrafficLight('node1', config=self.config),
-                                        TrafficLight('node2', config=self.config), 
-                                        TrafficLight('node3', config=self.config), 
-                                        TrafficLight('node4', config=self.config) ]
+                self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     traci.simulationStep()
                     for i in range(len(self.traffic_lights)):
@@ -88,10 +85,7 @@ class Environment():
 
                 # create traffic_lights just once
                 if e == 0 and pretrain_ == False:
-                    self.traffic_lights = [  TrafficLight('node1', config=self.config),
-                                            TrafficLight('node2', config=self.config), 
-                                            TrafficLight('node3', config=self.config), 
-                                            TrafficLight('node4', config=self.config) ]                    
+                    self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
                 else:
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].reset()
@@ -109,11 +103,8 @@ class Environment():
                 print("")
 
         else:
-            traci.start(sumo_cmd)
-            self.traffic_lights = [  TrafficLight('node1', config=self.config),
-                                    TrafficLight('node2', config=self.config), 
-                                    TrafficLight('node3', config=self.config), 
-                                    TrafficLight('node4', config=self.config)]
+            traci.start(sumo_cmd)                
+            self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()
                 for i in range(len(self.traffic_lights)):
@@ -129,6 +120,6 @@ class Environment():
 
     def evaluate(self):
         """
-           Log results of this episode 
+           Log results of this episode
         """
         pass

@@ -19,35 +19,34 @@ class TrafficLight:
     '''
         TrafficLight for each intersection having traffic signal control
     '''
-    def __init__(self, tfID, algorithm='IntelliLight', yellow_duration=3, cycle_control=5, config=None):
-        self.id = tfID
-        self.control_algorithm = algorithm
-        self.yellow_duration = yellow_duration
-        self.cycle_control = cycle_control
+    def __init__(self, config=None):
+        self.id = config['node_id']
+        self.control_algorithm = config['method']
+        self.yellow_duration = config['yellow_duration']
+        self.cycle_control = config['cycle_control']
 
-        self.lanes = traci.trafficlight.getControlledLanes(tfID)
+        self.lanes = traci.trafficlight.getControlledLanes(self.id)
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
-            self.controller = SOTL()
+            self.controller = SOTL(cycle_control=config['cycle_control'])
         elif self.control_algorithm == 'SimpleRL':
             self.controller = SimpleRL()
         elif self.control_algorithm == 'CDRL':
-            self.controller = CDRL(config=config, tfID=tfID)
+            self.controller = CDRL(config=config, tfID=self.id)
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, tfID=tfID)
+            self.controller = VFB(config=config, tfID=self.id)
         elif self.control_algorithm == 'IntelliLight':
-            self.controller = IntelliLight(config=config, tfID=tfID)
+            self.controller = IntelliLight(config=config, tfID=self.id)
         else:
-            print("Must implement method named %s" % algorithm)
+            print("Must implement method named %s" % self.control_algorithm)
 
 
-        self.writer = tf.summary.create_file_writer('./logs/train/%s' % tfID)
+        self.writer = tf.summary.create_file_writer('./logs/train/%s' % self.id)
         self.current_phase = 0
         self.last_action, self.last_processed_state, self.last_state = None, None, None
         self.last_action_is_change = 0
         self.last_total_delay = 0
-
         self.reset()
 
     def setLogic(self):
@@ -83,11 +82,6 @@ class TrafficLight:
 
         return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
-
-    # def processStackControls(self, stack):
-    #     stack_ = []
-
-    #     return
 
     def update(self, is_train=False, pretrain=False):
         # TODO - new update function to suit for a stack of actions and more phases of a cycle

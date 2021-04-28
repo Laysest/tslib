@@ -1,4 +1,5 @@
 from environment import Environment
+from glo_vars import GloVars
 
 class TSLib:
     # constructor of TSLib
