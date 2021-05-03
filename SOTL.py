@@ -35,8 +35,10 @@ class SOTL(Controller):
                 print(state, "Error")
         if (number_veh_on_green_lanes < MIN_GREEN_VEHICLE and number_veh_on_red_lanes > MAX_RED_VEHICLE) \
                 or (number_veh_on_green_lanes == 0 and number_veh_on_red_lanes > 0):
-            return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+            return 1, [1]
+        return 0, [0]
+        #     return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        # return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
 
     def actionType(self):
         #TODO: remove this function

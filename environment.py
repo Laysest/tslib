@@ -26,6 +26,7 @@ class Environment():
         self.controllers = []
         self.config = config
         self.traffic_lights = None
+        
     def reset(self):
         self.vehicles = []
 
