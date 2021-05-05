@@ -11,7 +11,7 @@ config = {
     'traffic_lights':[
         {'node_id': 'node1', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5}
     ],
-    'gui': True
+    'gui': False
 }
 
 # config = {

@@ -2,8 +2,8 @@
     This file declare TrafficLight class
 """
 import random
-import tensorflow as tf
 import sys
+import tensorflow as tf
 from SOTL import SOTL
 from SimpleRL import SimpleRL
 from CDRL import CDRL
@@ -33,9 +33,7 @@ class TrafficLight:
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
-            self.controller = SOTL(cycle_control=config['cycle_control'])
-        elif self.control_algorithm == 'SimpleRL':
-            self.controller = SimpleRL()
+            self.controller = SOTL(cycle_control=config['cycle_control'], tfID=self.id)
         elif self.control_algorithm == 'CDRL':
             self.controller = CDRL(config=config, tfID=self.id)
         elif self.control_algorithm == 'VFB':
@@ -103,12 +101,12 @@ class TrafficLight:
         """
             Call this function to change the traffic light to the next phase
         """
-        current_phase_ = GloVars.traci.trafficlight.getPhase(self.id)
+        current_phase_ = traci.trafficlight.getPhase(self.id)
         if current_phase_ >= MAX_NUM_PHASE - 1:
-            GloVars.traci.trafficlight.setPhase(self.id, 0)
+            traci.trafficlight.setPhase(self.id, 0)
         else:
-            GloVars.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-        GloVars.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+            traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
     def doAction(self):
         """
@@ -130,8 +128,6 @@ class TrafficLight:
         """
             Call this function each time step
         """
-        current_phase_ = GloVars.traci.trafficlight.getPhase(self.id)
-        print(GloVars.traci.simulation.getTime() ,current_phase_, self.control_actions)
         # TODO - new update function to suit for a stack of actions and more phases of a cycle
         # ....
         # every changing action has a yellow phase following
@@ -166,6 +162,7 @@ class TrafficLight:
                     action, control_stack = self.controller.randomAction(cur_state)
                 else:
                     action, control_stack = self.controller.makeAction(cur_state)
+
                 # log last_state, last_action, reward, cur_state
                 # if (self.last_processed_state is not None) and (self.last_action is not None) and (self.last_state is not None):
                 #     # compute reward
@@ -183,7 +180,6 @@ class TrafficLight:
 
         self.processControlStack(control_stack)
         self.doAction()
-
 
             # TODO - log last state for computing reward
             # self.last_action_is_change =         ??
