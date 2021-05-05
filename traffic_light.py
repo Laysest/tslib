@@ -2,20 +2,24 @@
     This file declare TrafficLight class
 """
 import random
-import sys
 import tensorflow as tf
+import sys
 from SOTL import SOTL
 from SimpleRL import SimpleRL
 from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
-from controller import ActionType
 from glo_vars import GloVars
+from controller import ActionType
 
 MAX_INT = 9999999
 traci = GloVars.traci
 
+# TODO: change it to more general
+MAX_NUM_PHASE = 4
+
 class TrafficLight:
+    # pylint: disable=line-too-long invalid-name too-many-instance-attributes
     '''
         TrafficLight for each intersection having traffic signal control
     '''
@@ -66,7 +70,6 @@ class TrafficLight:
         self.last_action_is_change = 0
         self.last_total_delay = 0
         self.last_list_veh = []
-        self.action_type = self.controller.actionType()
 
     def getState(self):
         """
@@ -83,8 +86,52 @@ class TrafficLight:
         return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
 
+    def processControlStack(self, control_stack):
+        if len(control_stack) <= 0:
+            return
+        for action in control_stack:
+            if action['type'] == ActionType.CHANGE_PHASE:
+                self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
+                                             {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
+            elif action['type'] == ActionType.KEEP_PHASE:
+                self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
+            else:
+                print("error in processControlStack")
+                sys.exit()
+
+    def changeToNextPhase(self):
+        """
+            Call this function to change the traffic light to the next phase
+        """
+        current_phase_ = GloVars.traci.trafficlight.getPhase(self.id)
+        if current_phase_ >= MAX_NUM_PHASE - 1:
+            GloVars.traci.trafficlight.setPhase(self.id, 0)
+        else:
+            GloVars.traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+        GloVars.traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+
+    def doAction(self):
+        """
+            This function is to execute the control_actions
+            if not executed => executed
+            -- length
+            if length = 0 => pop
+        """
+        if len(self.control_actions) > 0:
+            if self.control_actions[0]['executed'] is False:
+                self.control_actions[0]['executed'] = True
+                if self.control_actions[0]['type'] == ActionType.CHANGE_PHASE or self.control_actions[0]['type'] == ActionType.YELLOW_PHASE:
+                    self.changeToNextPhase()
+            self.control_actions[0]['length'] -= 1
+            if self.control_actions[0]['length'] <= 0:
+                self.control_actions.pop(0)
 
     def update(self, is_train=False, pretrain=False):
+        """
+            Call this function each time step
+        """
+        current_phase_ = GloVars.traci.trafficlight.getPhase(self.id)
+        print(GloVars.traci.simulation.getTime() ,current_phase_, self.control_actions)
         # TODO - new update function to suit for a stack of actions and more phases of a cycle
         # ....
         # every changing action has a yellow phase following
@@ -111,14 +158,45 @@ class TrafficLight:
         #           if time length == 0:
         #               that means finish the cycle => delete in queue
         #                   check if has just deleted yellow phase (still have action in action_queue) => change phase
+        control_stack = []
+        if len(self.control_actions) <= 0:
+            cur_state = self.getState()
+            if is_train:
+                if pretrain or (random.uniform(0, 1) <= GloVars.EXPLORE_PROBABILITY):
+                    action, control_stack = self.controller.randomAction(cur_state)
+                else:
+                    action, control_stack = self.controller.makeAction(cur_state)
+                # log last_state, last_action, reward, cur_state
+                # if (self.last_processed_state is not None) and (self.last_action is not None) and (self.last_state is not None):
+                #     # compute reward
+                #     reward = self.controller.computeReward(cur_state, self.last_state)
+                #     self.controller.exp_memory.add([self.last_processed_state, self.last_action, reward, self.controller.processState(cur_state)])
+                #     # plot reward
+                #     if not pretrain:
+                #         with self.writer.as_default():
+                #             tf.summary.scalar('reward', reward, step=GloVars.step)
+
+                # self.last_state = cur_state
+                # self.last_processed_state, self.last_action = self.controller.processState(cur_state), action
+            else:
+                action, control_stack = self.controller.makeAction(cur_state)
+
+        self.processControlStack(control_stack)
+        self.doAction()
+
+
+            # TODO - log last state for computing reward
+            # self.last_action_is_change =         ??
 
         # if len(self.control_actions) <= 0:
-        #     cur_state = self.getState()            
+        #     cur_state = self.getState()
+        #     # if is training:
+        #     #     check to explore
         #     if is_train:
         #         if pretrain or (random.uniform(0, 1) <= GloVars.EXPLORE_PROBABILITY):
-        #             action, control_stack = self.controller.randomAction(cur_state)
+        #             action, stack_controls = self.controller.randomAction(cur_state)
         #         else:
-        #             action, control_stack = self.controller.makeAction(cur_state)
+        #             action, stack_controls = self.controller.makeAction(cur_state)
         #         # log last_state, last_action, reward, cur_state
         #         if (self.last_processed_state is not None) and (self.last_action is not None) and (self.last_state is not None):
         #             # compute reward
@@ -132,88 +210,61 @@ class TrafficLight:
         #         self.last_state = cur_state
         #         self.last_processed_state, self.last_action = self.controller.processState(cur_state), action
         #     else:
-        #         action, control_stack = self.controller.makeAction(cur_state)
+        #         action, stack_controls = self.controller.makeAction(cur_state)
 
-            # TODO - log last state for computing reward
-            # self.last_action_is_change =         ??
+        #     if self.action_type == ActionType.CHOICE_OF_PHASE:
+        #         # handle action type of CHOICE_OF_PHASE:
+        #         if traci.trafficlight.getPhase(cur_state['tfID']) != action:
+        #             to_change = 1
+        #         else:
+        #             to_change = 0
+        #     else:
+        #         to_change = action
 
-        if len(self.control_actions) <= 0:
-            cur_state = self.getState()
-            # if is training:
-            #     check to explore
-            if is_train:
-                if pretrain or (random.uniform(0, 1) <= GloVars.EXPLORE_PROBABILITY):
-                    action, stack_controls = self.controller.randomAction(cur_state)
-                else:
-                    action, stack_controls = self.controller.makeAction(cur_state)
-                # log last_state, last_action, reward, cur_state
-                if (self.last_processed_state is not None) and (self.last_action is not None) and (self.last_state is not None):
-                    # compute reward
-                    reward = self.controller.computeReward(cur_state, self.last_state)
-                    self.controller.exp_memory.add([self.last_processed_state, self.last_action, reward, self.controller.processState(cur_state)])
-                    # plot reward
-                    if not pretrain:
-                        with self.writer.as_default():
-                            tf.summary.scalar('reward', reward, step=GloVars.step)
+        #     # save measured performance of last state
+        #     self.last_action_is_change = to_change
 
-                self.last_state = cur_state
-                self.last_processed_state, self.last_action = self.controller.processState(cur_state), action
-            else:
-                action, stack_controls = self.controller.makeAction(cur_state)
+        #     # get total delay -----------------------------------------------------------------------
+        #     lanes = list(dict.fromkeys(self.lanes))
+        #     vehs = []
+        #     for lane in lanes:
+        #         vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
+        #     total_delay = 0
+        #     for veh in vehs:
+        #         total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
+        #     self.last_total_delay = total_delay
+        #     # ---------------------------------------------------------------------------------------
 
-            if self.action_type == ActionType.CHOICE_OF_PHASE:
-                # handle action type of CHOICE_OF_PHASE:
-                if traci.trafficlight.getPhase(cur_state['tfID']) != action:
-                    to_change = 1
-                else:
-                    to_change = 0
-            else:
-                to_change = action
+        #     if to_change == 1:
+        #         current_phase_ = traci.trafficlight.getPhase(self.id)
+        #         if current_phase_ < 3:
+        #             traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+        #             self.control_actionstraci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        #         else:
+        #             print("******* error := change at yellow phase ??? ")
+        #             sys.exit()
 
-            # save measured performance of last state
-            self.last_action_is_change = to_change
+        #         self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
+        #                                    {'type': 'red_green_phase', 'length': self.cycle_control}])
+        #     else:
+        #         self.control_actions.append({'type': 'red_green_phase', 'length': self.cycle_control})
 
-            # get total delay -----------------------------------------------------------------------
-            lanes = list(dict.fromkeys(self.lanes))
-            vehs = []
-            for lane in lanes:
-                vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-            total_delay = 0
-            for veh in vehs:
-                total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
-            self.last_total_delay = total_delay
-            # ---------------------------------------------------------------------------------------
+        # if len(self.control_actions) > 0:
+        #     self.control_actions[0]['length'] -= 1
+        #     if self.control_actions[0]['length'] <= 0:
+        #         self.control_actions.pop(0)
+        #         if len(self.control_actions) > 0:
+        #             current_phase_ = traci.trafficlight.getPhase(self.id)
+        #             if current_phase_ == 1:
+        #                 traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+        #             elif current_phase_ == 3:
+        #                 traci.trafficlight.setPhase(self.id, 0)
+        #             else:
+        #                 print("******* error in control: current_phase: %d, control_actions: %s" % (current_phase_, self.control_actions))
+        #                 sys.exit()
+        #             traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
-            if to_change == 1:
-                current_phase_ = traci.trafficlight.getPhase(self.id)
-                if current_phase_ < 3:
-                    traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-                    self.control_actionstraci.trafficlight.setPhaseDuration(self.id, MAX_INT)
-                else:
-                    print("******* error := change at yellow phase ??? ")
-                    sys.exit()
-
-                self.control_actions.extend([{'type': 'yellow_phase', 'length': self.yellow_duration},
-                                           {'type': 'red_green_phase', 'length': self.cycle_control}])
-            else:
-                self.control_actions.append({'type': 'red_green_phase', 'length': self.cycle_control})
-
-        if len(self.control_actions) > 0:
-            self.control_actions[0]['length'] -= 1
-            if self.control_actions[0]['length'] <= 0:
-                self.control_actions.pop(0)
-                if len(self.control_actions) > 0:
-                    current_phase_ = traci.trafficlight.getPhase(self.id)
-                    if current_phase_ == 1:
-                        traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-                    elif current_phase_ == 3:
-                        traci.trafficlight.setPhase(self.id, 0)
-                    else:
-                        print("******* error in control: current_phase: %d, control_actions: %s" % (current_phase_, self.control_actions))
-                        sys.exit()
-                    traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
-
-        self.current_phase = traci.trafficlight.getPhase(self.id)
+        # self.current_phase = traci.trafficlight.getPhase(self.id)
 
     def replay(self):
         self.controller.replay()

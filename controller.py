@@ -27,6 +27,3 @@ class Controller:
     def processState(self, state):
         print("Must <<override> processState(state)!!")
         pass
-
-    def actionType(self):
-        return ActionType.CHOICE_OF_PHASE
