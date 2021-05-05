@@ -104,7 +104,7 @@ class Environment():
                 print("")
 
         else:
-            traci.start(sumo_cmd)                
+            traci.start(sumo_cmd)
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 traci.simulationStep()

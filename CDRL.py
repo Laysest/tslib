@@ -18,22 +18,23 @@ NUM_OF_RED_GREEN_PHASES = 2
 traci = GloVars.traci
 
 class CDRL(RLAgent):
-    def __init__(self, config=None, tfID=None):
-        RLAgent.__init__(self)
+    def __init__(self, config=None, tfID=None, cycle_control=None):
+        RLAgent.__init__(self, cycle_control)
         self.config = config
         self.tfID = tfID
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
+        self.lanes = traci.trafficlight.getControlledLanes(self.tfID)
+        self.lanes_unique = list(dict.fromkeys(self.lanes))
         print("%s: %s" % (center.getID(), str(nodes_id)))
 
-    def computeReward(self, state, last_state):
+    def computeReward(self, state, historical_data):
         reward = 0
-
         # penalty for change signal
-        reward -= 0.1*state['last_action_is_change']
+        reward -= 0.1*historical_data['CDRL']['last_action_is_change']
         
         # get list vehicles
-        lanes = list(dict.fromkeys(state['lanes']))
+        lanes = self.lanes_unique
         vehs = []
         for lane in lanes:
             vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
@@ -95,9 +96,8 @@ class CDRL(RLAgent):
             W       E
             [N, E, None, W]
 
-        """
-        
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
+        """ 
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
@@ -182,7 +182,7 @@ class CDRL(RLAgent):
                     position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
         return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
-    
+
     def buildArray(self, lane=None, incoming=True):
         arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case

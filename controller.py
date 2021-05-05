@@ -16,6 +16,9 @@ class ActionType(Enum):
 #     VFB = 5
 #     IntelliLight = 6
 class Controller:
+    def __init__(self):
+        pass
+
     def makeAction(self, state):
         print("Must <<override> makeAction(state)!!")
         return 0, [0]
