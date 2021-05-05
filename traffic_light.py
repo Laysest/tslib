@@ -83,6 +83,7 @@ class TrafficLight:
         return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
 
+
     def update(self, is_train=False, pretrain=False):
         # TODO - new update function to suit for a stack of actions and more phases of a cycle
         # ....
@@ -187,7 +188,7 @@ class TrafficLight:
                 current_phase_ = traci.trafficlight.getPhase(self.id)
                 if current_phase_ < 3:
                     traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-                    traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+                    self.control_actionstraci.trafficlight.setPhaseDuration(self.id, MAX_INT)
                 else:
                     print("******* error := change at yellow phase ??? ")
                     sys.exit()

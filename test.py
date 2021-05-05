@@ -25,7 +25,7 @@ config = {
         {'node_id': 'node3', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5},
         {'node_id': 'node4', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5},
     ],
-    'gui': False
+    'gui': True
 }
 
 sim = TSLib(config)

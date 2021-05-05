@@ -7,6 +7,7 @@ class ActionType(Enum):
     CHANGE_PHASE = 4
     KEEP_PHASE = 5
     YELLOW_PHASE = 6
+
 # class ControlAlgorithm(Enum):
 #     FixedTime = 1 # TODO
 #     SOTL = 2
@@ -14,7 +15,6 @@ class ActionType(Enum):
 #     CDRL = 4
 #     VFB = 5
 #     IntelliLight = 6
-
 class Controller:
     def __init__(self, cycle_control):
         self.cycle_control = cycle_control
