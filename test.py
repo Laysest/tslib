@@ -29,4 +29,4 @@ config = {
 }
 
 sim = TSLib(config)
-sim.run(is_train=False)
+sim.run(is_train=True)
