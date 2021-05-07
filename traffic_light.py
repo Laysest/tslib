@@ -37,7 +37,7 @@ class TrafficLight:
         elif self.control_algorithm == 'CDRL':
             self.controller = CDRL(config=config, tfID=self.id, cycle_control=config['cycle_control'])
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, tfID=self.id)
+            self.controller = VFB(config=config, tfID=self.id, cycle_control=config['cycle_control'])
         elif self.control_algorithm == 'IntelliLight':
             self.controller = IntelliLight(config=config, tfID=self.id)
         else:

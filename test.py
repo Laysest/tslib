@@ -20,10 +20,10 @@ config = {
     'route': '4x1-two-way.light.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'node1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node1', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node2', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node3', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node4', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5},
     ],
     'gui': False
 }

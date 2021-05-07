@@ -1,16 +1,15 @@
-from RLAgent import RLAgent
+import sys
+import math
+import sumolib
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D
 from tensorflow.keras.optimizers import Adam
-import numpy as np
-np.set_printoptions(threshold=np.inf)
-
-import math
-import sumolib
-import sys
+from RLAgent import RLAgent
 from glo_vars import GloVars
 
+np.set_printoptions(threshold=np.inf)
 traci = GloVars.traci
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4
@@ -18,8 +17,8 @@ MAX_NUM_WAY = 4
 NUM_OF_RED_GREEN_PHASES = 2
 
 class VFB(RLAgent):
-    def __init__(self, config=None, tfID=None):
-        RLAgent.__init__(self)
+    def __init__(self, config=None, tfID=None, cycle_control=None):
+        RLAgent.__init__(self, cycle_control)
         self.config = config
         self.tfID = tfID
         nodes, center = self.getNodesSortedByDirection()
@@ -73,7 +72,7 @@ class VFB(RLAgent):
 
         """
         
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tfID)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
