@@ -11,10 +11,11 @@ class SOTL(Controller):
     """
         The implementation of SOTL method
     """
-    def __init__(self, cycle_control, tfID):
+    def __init__(self, cycle_control, tf_id):
+        Controller.__init__(self)
         self.cycle_control = cycle_control
-        self.tfID = tfID
-        self.lanes = traci.trafficlight.getControlledLanes(self.tfID)
+        self.tf_id = tf_id
+        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
         self.lanes_unique = list(dict.fromkeys(self.lanes))
 
     def processState(self, state):
@@ -24,7 +25,7 @@ class SOTL(Controller):
             current_logic: 'ggggrrrrgggg' shows status of traffic light
             num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order
         """
-        all_logic_ = traci.trafficlight.getAllProgramLogics(self.tfID)[0]
+        all_logic_ = traci.trafficlight.getAllProgramLogics(self.tf_id)[0]
         current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
         number_veh_on_green_lanes = 0
         number_veh_on_red_lanes = 0

@@ -33,30 +33,27 @@ class TrafficLight:
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
-            self.controller = SOTL(cycle_control=config['cycle_control'], tfID=self.id)
+            self.controller = SOTL(cycle_control=config['cycle_control'], tf_id=self.id)
         elif self.control_algorithm == 'CDRL':
-            self.controller = CDRL(config=config, tfID=self.id, cycle_control=config['cycle_control'])
+            self.controller = CDRL(config=config, tf_id=self.id, cycle_control=config['cycle_control'])
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, tfID=self.id, cycle_control=config['cycle_control'])
+            self.controller = VFB(config=config, tf_id=self.id, cycle_control=config['cycle_control'])
         elif self.control_algorithm == 'IntelliLight':
-            self.controller = IntelliLight(config=config, tfID=self.id)
+            self.controller = IntelliLight(config=config, tf_id=self.id)
         else:
             print("Must implement method named %s" % self.control_algorithm)
-
 
         self.writer = tf.summary.create_file_writer('./logs/train/%s' % self.id)
         self.current_phase = 0
         self.last_action, self.last_processed_state, self.last_state = None, None, None
         self.last_action_is_change = 0
         self.last_total_delay = 0
+        self.lanes = traci.trafficlight.getControlledLanes(self.id)
+        self.lanes_unique = list(dict.fromkeys(self.lanes))
         self.reset()
 
          # this for  computing reward
-        self.historical_data = {
-            'CDRL': {
-                'last_action_is_change': 0
-            }
-        }
+        self.historical_data = None
         
     def setLogic(self):
         """
@@ -75,10 +72,14 @@ class TrafficLight:
         self.last_action_is_change = 0
         self.last_total_delay = 0
         self.last_list_veh = []
-
-    def logHistoricalData(self):
-
-        pass
+        self.historical_data = {
+            'CDRL': {
+                'last_action_is_change': 0
+            },
+            'VFB': {
+                'last_total_delay': 0
+            }
+        }
 
     def getState(self):
         """
@@ -92,7 +93,7 @@ class TrafficLight:
         for lane in lanes_unique_:
             vehs_id.extend(traci.lane.getLastStepVehicleIDs(lane))
 
-        return {'tfID': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
+        return {'tf_id': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
                 'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
 
     def processControlStack(self, control_stack):
@@ -135,6 +136,22 @@ class TrafficLight:
             if self.control_actions[0]['length'] <= 0:
                 self.control_actions.pop(0)
 
+    def logHistoricalData(self, last_action):
+        if last_action == ActionType.CHANGE_PHASE:
+            self.historical_data['CDRL']['last_action_is_change'] = 1
+        else:
+            self.historical_data['CDRL']['last_action_is_change'] = 0
+
+        vehs = []
+        for lane in self.lanes_unique:
+            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
+        
+        # total delay
+        total_delay = 0
+        for veh in vehs:
+            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
+        self.historical_data['VFB']['last_total_delay'] = total_delay
+
     def update(self, is_train=False, pretrain=False):
         """
             Call this function each time step
@@ -173,15 +190,12 @@ class TrafficLight:
                     action, control_stack = self.controller.randomAction(cur_state)
                 else:
                     action, control_stack = self.controller.makeAction(cur_state)
-                
-                if control_stack[0]['type'] == ActionType.CHANGE_PHASE:
-                    self.historical_data['CDRL']['last_action_is_change'] = 1
-                else:
-                    self.historical_data['CDRL']['last_action_is_change'] = 0
+
                 # log last_state, last_action, reward, cur_state
                 if (self.last_processed_state is not None) and (self.last_action is not None):
                     # compute reward
                     reward = self.controller.computeReward(cur_state, self.historical_data)
+                    self.logHistoricalData(control_stack[0]['type'])
                     self.controller.exp_memory.add([self.last_processed_state, self.last_action, reward, self.controller.processState(cur_state)])
                     # plot reward
                     if not pretrain:
@@ -224,7 +238,7 @@ class TrafficLight:
 
         #     if self.action_type == ActionType.CHOICE_OF_PHASE:
         #         # handle action type of CHOICE_OF_PHASE:
-        #         if traci.trafficlight.getPhase(cur_state['tfID']) != action:
+        #         if traci.trafficlight.getPhase(cur_state['tf_id']) != action:
         #             to_change = 1
         #         else:
         #             to_change = 0

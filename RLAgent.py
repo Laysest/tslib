@@ -33,7 +33,7 @@ class RLAgent(Controller):
         print("Must <<override> processState(state)!!")
         return state
 
-    def computeReward(self, state, last_state):
+    def computeReward(self, state, historical_data):
         print("Muss <<override>> computeReward(state)")
         pass
     

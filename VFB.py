@@ -17,21 +17,22 @@ MAX_NUM_WAY = 4
 NUM_OF_RED_GREEN_PHASES = 2
 
 class VFB(RLAgent):
-    def __init__(self, config=None, tfID=None, cycle_control=None):
+    def __init__(self, config=None, tf_id=None, cycle_control=None):
         RLAgent.__init__(self, cycle_control)
         self.config = config
-        self.tfID = tfID
+        self.tf_id = tf_id
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
         print("%s: %s" % (center.getID(), str(nodes_id)))
+        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
+        self.lanes_unique = list(dict.fromkeys(self.lanes))
 
-    def computeReward(self, state, last_state):
+    def computeReward(self, state, historical_data):
         reward = 0
 
         # get list vehicles
-        lanes = list(dict.fromkeys(state['lanes']))
         vehs = []
-        for lane in lanes:
+        for lane in self.lanes_unique:
             vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
         
         # total delay
@@ -39,7 +40,7 @@ class VFB(RLAgent):
         for veh in vehs:
             total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
         
-        reward = state['last_total_delay'] - total_delay
+        reward = historical_data['VFB']['last_total_delay'] - total_delay
 
         return reward
 
@@ -72,7 +73,7 @@ class VFB(RLAgent):
 
         """
         
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tfID)
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]

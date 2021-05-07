@@ -44,11 +44,11 @@ class Environment():
         for i in range(len(self.vehicles)):
             self.vehicles[i].update()
     
-    def getEdgesOfNode(self, tfID):
+    def getEdgesOfNode(self, tf_id):
         in_edges = []
         out_edges = []
         for edge in self.edges:
-            if edge.getToNode() == tfID:
+            if edge.getToNode() == tf_id:
                 in_edges.append(edge)
             # elif edge.get
 

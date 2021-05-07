@@ -25,10 +25,10 @@ MAX_NUM_WAY = 4
 NUM_OF_RED_GREEN_PHASES = 2
 
 class IntelliLight(RLAgent):
-    def __init__(self, config=None, tfID=None):
+    def __init__(self, config=None, tf_id=None):
         RLAgent.__init__(self)
         self.config = config
-        self.tfID = tfID
+        self.tf_id = tf_id
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
         print("%s: %s" % (center.getID(), str(nodes_id)))
@@ -126,7 +126,7 @@ class IntelliLight(RLAgent):
             [N, E, None, W]
 
         """
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tf_id)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
@@ -145,7 +145,7 @@ class IntelliLight(RLAgent):
         
         lane_features_ = self.getLaneFeatures(lanes_in_phases=state['lanes'], current_logic=state['current_logic'])
 
-        phase = traci.trafficlight.getPhase(self.tfID)
+        phase = traci.trafficlight.getPhase(self.tf_id)
         state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]
         return state_
 
@@ -235,7 +235,7 @@ class IntelliLight(RLAgent):
                 for j in range(GloVars.ARRAY_LENGTH):
                     position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
-        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
+        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tf_id))
     
     def buildArray(self, lane=None, incoming=True):
         arr = np.zeros(GloVars.ARRAY_LENGTH)
