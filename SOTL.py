@@ -11,9 +11,9 @@ class SOTL(Controller):
     """
         The implementation of SOTL method
     """
-    def __init__(self, cycle_control, tf_id):
+    def __init__(self, config, tf_id):
         Controller.__init__(self)
-        self.cycle_control = cycle_control
+        self.cycle_control = config['cycle_control']
         self.tf_id = tf_id
         self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
         self.lanes_unique = list(dict.fromkeys(self.lanes))

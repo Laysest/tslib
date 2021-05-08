@@ -33,11 +33,11 @@ class TrafficLight:
         # self.lanes = []
         # Create controller based on the algorithm configed
         if self.control_algorithm == 'SOTL':
-            self.controller = SOTL(cycle_control=config['cycle_control'], tf_id=self.id)
+            self.controller = SOTL(config=config, tf_id=self.id)
         elif self.control_algorithm == 'CDRL':
-            self.controller = CDRL(config=config, tf_id=self.id, cycle_control=config['cycle_control'])
+            self.controller = CDRL(config=config, tf_id=self.id)
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, tf_id=self.id, cycle_control=config['cycle_control'])
+            self.controller = VFB(config=config, tf_id=self.id)
         elif self.control_algorithm == 'IntelliLight':
             self.controller = IntelliLight(config=config, tf_id=self.id)
         else:
@@ -78,6 +78,10 @@ class TrafficLight:
             },
             'VFB': {
                 'last_total_delay': 0
+            },
+            'IntelliLight':{
+                'last_action_is_change': 0,
+                'last_vehs_id': []
             }
         }
 
@@ -139,13 +143,16 @@ class TrafficLight:
     def logHistoricalData(self, last_action):
         if last_action == ActionType.CHANGE_PHASE:
             self.historical_data['CDRL']['last_action_is_change'] = 1
+            self.historical_data['IntelliLight']['last_action_is_change'] = 1
         else:
             self.historical_data['CDRL']['last_action_is_change'] = 0
+            self.historical_data['IntelliLight']['last_action_is_change'] = 0
 
         vehs = []
         for lane in self.lanes_unique:
             vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-        
+        self.historical_data['IntelliLight']['last_vehs_id'] = vehs
+
         # total delay
         total_delay = 0
         for veh in vehs:

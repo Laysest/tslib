@@ -18,8 +18,8 @@ NUM_OF_RED_GREEN_PHASES = 2
 traci = GloVars.traci
 
 class CDRL(RLAgent):
-    def __init__(self, config=None, tf_id=None, cycle_control=None):
-        RLAgent.__init__(self, cycle_control)
+    def __init__(self, config=None, tf_id=None):
+        RLAgent.__init__(self, config['cycle_control'])
         self.config = config
         self.tf_id = tf_id
         nodes, center = self.getNodesSortedByDirection()
