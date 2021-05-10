@@ -18,12 +18,12 @@ config = {
     'net': '4x1-two-way.net.xml',
     'veh_type': 'type.xml',
     'route': '4x1-two-way.light.route.xml',
-    'end': 3600,
+    'end': 600,
     'traffic_lights': [
-        {'node_id': 'node1', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node2', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node3', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5},
-        {'node_id': 'node4', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5},
+        {'node_id': 'node4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5},
     ],
     'gui': False
 }

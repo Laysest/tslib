@@ -9,6 +9,7 @@ from SimpleRL import SimpleRL
 from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
+from TLCC import TLCC
 from glo_vars import GloVars
 from controller import ActionType
 
@@ -40,6 +41,8 @@ class TrafficLight:
             self.controller = VFB(config=config, tf_id=self.id)
         elif self.control_algorithm == 'IntelliLight':
             self.controller = IntelliLight(config=config, tf_id=self.id)
+        elif self.control_algorithm == 'TLCC':
+            self.controller = TLCC(config=config, tf_id=self.id)
         else:
             print("Must implement method named %s" % self.control_algorithm)
 
@@ -105,8 +108,18 @@ class TrafficLight:
             return
         for action in control_stack:
             if action['type'] == ActionType.CHANGE_PHASE:
-                self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                                             {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
+                if action['length'] > 0:
+                    self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
+                                                {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
+                else:
+                    # TODO if action['length] == 0:
+                    self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length':self.yellow_duration, 'executed': False}, # change to yellow phase
+                                                {'type': ActionType.CHANGE_PHASE, 'length':  0, 'executed': False}, # change to next phase
+                                                {'type': ActionType.CHANGE_PHASE, 'length': 0, 'executed': False},  # change to yellow phase
+                                                {'type': ActionType.CHANGE_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
+
+                    # self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
+                    #                             {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
             elif action['type'] == ActionType.KEEP_PHASE:
                 self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
             else:
@@ -131,14 +144,32 @@ class TrafficLight:
             -- length
             if length = 0 => pop
         """
-        if len(self.control_actions) > 0:
+        while len(self.control_actions) > 0:
             if self.control_actions[0]['executed'] is False:
                 self.control_actions[0]['executed'] = True
                 if self.control_actions[0]['type'] == ActionType.CHANGE_PHASE or self.control_actions[0]['type'] == ActionType.YELLOW_PHASE:
                     self.changeToNextPhase()
-            self.control_actions[0]['length'] -= 1
-            if self.control_actions[0]['length'] <= 0:
+            if self.control_actions[0]['length'] > 1:
+                self.control_actions[0]['length'] -= 1
+                break
+            elif self.control_actions[0]['length'] == 1:
+                self.control_actions[0]['length'] -= 1
                 self.control_actions.pop(0)
+                break
+            elif self.control_actions[0]['length'] == 0:
+                self.control_actions.pop(0)
+                continue
+            else:
+                print("error in process control stack")
+                sys.exit()              
+        # if len(self.control_actions) > 0:
+        #     if self.control_actions[0]['executed'] is False:
+        #         self.control_actions[0]['executed'] = True
+        #         if self.control_actions[0]['type'] == ActionType.CHANGE_PHASE or self.control_actions[0]['type'] == ActionType.YELLOW_PHASE:
+        #             self.changeToNextPhase()
+        #     self.control_actions[0]['length'] -= 1
+        #     if self.control_actions[0]['length'] <= 0:
+        #         self.control_actions.pop(0)
 
     def logHistoricalData(self, last_action):
         if last_action == ActionType.CHANGE_PHASE:

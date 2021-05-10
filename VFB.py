@@ -13,8 +13,6 @@ np.set_printoptions(threshold=np.inf)
 traci = GloVars.traci
 # we only support 3-way and 4-way intersections
 MAX_NUM_WAY = 4
-# we assume that there are only 2 red/green phases, user can change this depend on their config
-NUM_OF_RED_GREEN_PHASES = 2
 
 class VFB(RLAgent):
     def __init__(self, config=None, tf_id=None):
