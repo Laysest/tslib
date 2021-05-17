@@ -35,13 +35,14 @@ class Environment():
 
         for veh_id_ in traci.simulation.getDepartedIDList():
             if veh_id_ not in self.vehicles:
-                self.vehicles[veh_id_] = Vehicle(veh_id_, now)
+                self.vehicles[veh_id_] = Vehicle(veh_id_)
 
         for veh_id_ in traci.simulation.getArrivedIDList():
             self.vehicles[veh_id_].finish()
 
-        for i in range(len(self.vehicles)):
-            self.vehicles[i].update()
+        for veh_id_ in self.vehicles:
+            if not self.vehicles[veh_id_].isFinished():
+                self.vehicles[veh_id_].update()
     
     def getEdgesOfNode(self, tf_id):
         in_edges = []
@@ -73,9 +74,10 @@ class Environment():
                 traci.start(sumo_cmd)
                 self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-                    traci.simulationStep()
+                    self.update()
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].update(is_train=False, pretrain=True)
+                    traci.simulationStep()
                 self.close()
             #### ------------------------------------------
 
@@ -91,14 +93,15 @@ class Environment():
                         self.traffic_lights[i].reset()
                 count = 1
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-                    traci.simulationStep()
+                    self.update()
                     GloVars.step += 1
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].update(is_train=is_train)
                         if count % GloVars.INTERVAL == 0:
                             self.traffic_lights[i].replay()
+                    traci.simulationStep()
                     count += 1
-                self.close()
+                self.close(ep=e)
                 print("-------------------------")
                 print("")
 
@@ -106,20 +109,34 @@ class Environment():
             traci.start(sumo_cmd)
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-                traci.simulationStep()
+                self.update()
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=is_train)
+                traci.simulationStep()
             self.close()
 
-    def close(self):
+    def close(self, ep=-1):
         """
             close simulation
         """
-        self.evaluate()
+        self.evaluate(ep)
+        self.reset()
         traci.close()
 
-    def evaluate(self):
+
+    def evaluate(self, ep):
         """
            Log results of this episode
         """
-        pass
+        for veh_id_ in self.vehicles:
+            if not self.vehicles[veh_id_].isFinished():
+                self.vehicles[veh_id_].logFinal()
+
+        veh_logs = [veh.final_log for veh in self.vehicles.values()]
+        metrics = ['avg_speed_per_step', 'CO2_emission', 'CO_emission', 'fuel_consumption', 'waiting_time',\
+                    'distance', 'travel_time', 'avg_speed']
+        
+        for metric in metrics:
+            val = sum(d[metric] for d in veh_logs) / len(veh_logs)
+            print("{0:20}:{1}".format(metric, val))
+
