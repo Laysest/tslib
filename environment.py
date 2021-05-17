@@ -22,24 +22,23 @@ class Environment():
                 gui: True/False to enable gui
             }
         """
-        self.vehicles = []
+        self.vehicles = {}
         self.controllers = []
         self.config = config
         self.traffic_lights = None
         
     def reset(self):
-        self.vehicles = []
+        self.vehicles = {}
 
     def update(self):
         now = traci.simulation.getTime()
-        vehs_id = [veh.id for veh in self.vehicles]
+
         for veh_id_ in traci.simulation.getDepartedIDList():
-            if veh_id_ not in vehs_id:
-                self.vehicles.append(Vehicle(veh_id_, now))
+            if veh_id_ not in self.vehicles:
+                self.vehicles[veh_id_] = Vehicle(veh_id_, now)
 
         for veh_id_ in traci.simulation.getArrivedIDList():
-            if veh_id_ in vehs_id:
-                self.vehicles[vehs_id.index(veh_id_)].finish()
+            self.vehicles[veh_id_].finish()
 
         for i in range(len(self.vehicles)):
             self.vehicles[i].update()
