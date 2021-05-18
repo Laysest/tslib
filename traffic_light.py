@@ -3,6 +3,7 @@
 """
 import random
 import sys
+import os
 import tensorflow as tf
 from SOTL import SOTL
 from SimpleRL import SimpleRL
@@ -12,6 +13,7 @@ from IntelliLight import IntelliLight
 from TLCC import TLCC
 from glo_vars import GloVars
 from controller import ActionType
+
 
 MAX_INT = 9999999
 traci = GloVars.traci
@@ -29,7 +31,7 @@ class TrafficLight:
         self.control_algorithm = config['method']
         self.yellow_duration = config['yellow_duration']
         self.cycle_control = config['cycle_control']
-
+        self.folder = config['folder']
         self.lanes = traci.trafficlight.getControlledLanes(self.id)
         # self.lanes = []
         # Create controller based on the algorithm configed
@@ -57,6 +59,34 @@ class TrafficLight:
 
          # this for  computing reward
         self.historical_data = None
+        self.log = {
+            'lanes': self.lanes_unique
+        }
+
+    def log_step(self):
+        now = traci.simulation.getTime()
+        self.log[now] = {
+            'CO2_emission': [traci.lane.getCO2Emission(lane) for lane in self.lanes_unique],
+            'CO_emission': [traci.lane.getCOEmission(lane) for lane in self.lanes_unique],
+            'fuel_consumption': [traci.lane.getFuelConsumption(lane) for lane in self.lanes_unique],
+            'num_halting_vehs': [traci.lane.getLastStepHaltingNumber(lane) for lane in self.lanes_unique],
+            'speed': [traci.lane.getLastStepMeanSpeed(lane) for lane in self.lanes_unique],
+            'occupancy': [traci.lane.getLastStepOccupancy(lane) for lane in self.lanes_unique],
+            'num_vehs': [traci.lane.getLastStepVehicleNumber(lane) for lane in self.lanes_unique],
+            'waiting_time': [traci.lane.getWaitingTime(lane) for lane in self.lanes_unique],
+            'queue_length': self.getQueueLength()
+        }
+    
+    def getQueueLength(self):
+        queue_length = [];
+        for lane in self.lanes_unique:
+            q = 0
+            vehs = traci.lane.getLastStepVehicleIDs(lane)
+            for veh in vehs:
+                if traci.vehicle.getSpeed(veh) < 5:
+                    q += traci.vehicle.getLength(veh)
+            queue_length.append(q)
+        return queue_length
         
     def setLogic(self):
         """
@@ -86,6 +116,9 @@ class TrafficLight:
                 'last_action_is_change': 0,
                 'last_vehs_id': []
             }
+        }
+        self.log = {
+            'lanes': self.lanes_unique
         }
 
     def getState(self):
@@ -189,6 +222,11 @@ class TrafficLight:
         for veh in vehs:
             total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
         self.historical_data['VFB']['last_total_delay'] = total_delay
+
+    def saveModel(self, ep=0):
+        if not os.path.exists(self.folder):
+            os.makedirs(self.folder)
+        self.controller.model.save("%s/%s-%d.h5" % (self.folder, self.id, ep))
 
     def update(self, is_train=False, pretrain=False):
         """
