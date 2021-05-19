@@ -71,18 +71,7 @@ class IntelliLight(RLAgent):
                 N += 1
                 vehs_id_passed.append(veh_id_)
         reward += N
-
-        # reward for total travel time of the vehicles passed
-        # TODO -- use class Vehicle
-        # ....
-        T = 0
-        # for veh in vehs_passed
-        #     try:
-        #         pass
-        #     except:
-        #         pass
-        # ....
-
+        
         return reward
 
     def buildModel(self):
