@@ -34,9 +34,9 @@ config = {
     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/TLCC'},
+        {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/FixedTime'},
     ],
-    'log_folder': './log/train/hz-bc-tyc_1/TLCC',
+    'log_folder': './log/train/hz-bc-tyc_1/FixedTime',
     'gui': False,
 }
 
@@ -54,4 +54,4 @@ config = {
 
 
 sim = TSLib(config)
-sim.run(is_train=True)
+sim.run(is_train=False)

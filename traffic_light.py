@@ -11,8 +11,9 @@ from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
 from TLCC import TLCC
+from FixedTime import FixedTime
 from glo_vars import GloVars
-from controller import ActionType
+from controller import ActionType, Controller
 
 
 MAX_INT = 9999999
@@ -45,6 +46,8 @@ class TrafficLight:
             self.controller = IntelliLight(config=config, tf_id=self.id)
         elif self.control_algorithm == 'TLCC':
             self.controller = TLCC(config=config, tf_id=self.id)
+        elif self.control_algorithm == 'FixedTime':
+            self.controller = FixedTime(config=config, tf_id=self.id)
         else:
             print("Must implement method named %s" % self.control_algorithm)
 
@@ -99,8 +102,9 @@ class TrafficLight:
         traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
     def reset(self):
+        if self.control_algorithm != 'FixedTime':
+            self.setLogic()
         self.control_actions = []
-        self.setLogic()
         self.last_action, self.last_processed_state, self.last_state = None, None, None
         self.last_action_is_change = 0
         self.last_total_delay = 0
