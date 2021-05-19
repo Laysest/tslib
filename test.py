@@ -34,9 +34,9 @@ config = {
     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/hz-bc-tyc_1/TLCC'},
+        {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/TLCC'},
     ],
-    'log_folder': './log/hz-bc-tyc_1/TLCC',
+    'log_folder': './log/train/hz-bc-tyc_1/TLCC',
     'gui': False,
 }
 

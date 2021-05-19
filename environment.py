@@ -120,6 +120,8 @@ class Environment():
         else:
             traci.start(sumo_cmd)
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
+            for tf in self.traffic_lights:
+                tf.loadModel()
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 self.update()
                 for i in range(len(self.traffic_lights)):

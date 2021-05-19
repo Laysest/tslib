@@ -127,7 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-log/
+log/*
+!log/final/
 logs/
 model/*
 !/model/final/

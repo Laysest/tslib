@@ -227,6 +227,13 @@ class TrafficLight:
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)
         self.controller.model.save("%s/%s-%d.h5" % (self.folder, self.id, ep))
+    
+    def loadModel(self):
+        try:
+            #TODO: take care with 49
+            self.controller.model.load_weights("%s/%s-%d.h5" % (self.folder, self.id, 49))
+        except:
+            print("No model to load %s/%s-%d.h5" % (self.folder, self.id, 49))
 
     def update(self, is_train=False, pretrain=False):
         """
