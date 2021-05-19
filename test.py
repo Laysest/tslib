@@ -28,29 +28,33 @@ from tslib import TSLib
 #     'gui': True
 # }
 
-config = {
-    'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
-    'veh_type': 'type.xml',
-    'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
-    'end': 3600,
-    'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/FixedTime'},
-    ],
-    'log_folder': './log/train/hz-bc-tyc_1/FixedTime',
-    'gui': False,
-}
-
 # config = {
 #     'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
 #     'veh_type': 'type.xml',
 #     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
 #     'end': 3600,
 #     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/hz-bc-tyc_1/SOTL'},
+#         {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/FixedTime'},
 #     ],
-#     'log_folder': './log/hz-bc-tyc_1/SOTL',
+#     'log_folder': './log/train/hz-bc-tyc_1/FixedTime',
 #     'gui': False,
 # }
+
+config = {
+    'net': 'arterial_road/atlanta/road.net.xml',
+    'veh_type': 'type.xml',
+    'route': 'arterial_road/atlanta/flow.route.xml',
+    'end': 3600,
+    'traffic_lights': [
+        {'node_id': '69421277', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+        {'node_id': '69249210', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+        {'node_id': '69387071', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+        {'node_id': '69227168', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+        {'node_id': '69515842', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+    ],
+    'log_folder': './log/final/atlanta/FixedTime',
+    'gui': False,
+}
 
 
 sim = TSLib(config)
