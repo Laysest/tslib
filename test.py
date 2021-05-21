@@ -34,9 +34,9 @@ from tslib import TSLib
 #     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
 #     'end': 3600,
 #     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/FixedTime'},
+#         {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/CDRL'},
 #     ],
-#     'log_folder': './log/train/hz-bc-tyc_1/FixedTime',
+#     'log_folder': './log/train/hz-bc-tyc_1/CDRL',
 #     'gui': False,
 # }
 
@@ -46,16 +46,16 @@ config = {
     'route': 'arterial_road/atlanta/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': '69421277', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
-        {'node_id': '69249210', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
-        {'node_id': '69387071', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
-        {'node_id': '69227168', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
-        {'node_id': '69515842', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/FixedTime'},
+        {'node_id': '69421277', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
+        {'node_id': '69249210', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
+        {'node_id': '69387071', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
+        {'node_id': '69227168', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
+        {'node_id': '69515842', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
     ],
-    'log_folder': './log/final/atlanta/FixedTime',
+    'log_folder': './log/train/atlanta/VFB',
     'gui': False,
 }
 
 
 sim = TSLib(config)
-sim.run(is_train=False)
+sim.run(is_train=True)

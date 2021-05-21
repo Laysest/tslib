@@ -126,7 +126,7 @@ class IntelliLight(RLAgent):
         neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
         
         # center_node_coord = center_node.getCoord()
-        return neightbor_nodes_sorted, center_node
+        return neightbor_nodes, center_node
 
     def processState(self, state=None):
         """
@@ -217,7 +217,7 @@ class IntelliLight(RLAgent):
                     position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
 
         # handle the West side
-        if neightbor_nodes[3] != None:
+        if len(neightbor_nodes) > 3 and neightbor_nodes[3] != None:
             incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
             outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
             for i, lane in enumerate(incoming_edge_from_west.getLanes()):
