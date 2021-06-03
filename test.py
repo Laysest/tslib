@@ -46,13 +46,13 @@ config = {
     'route': 'arterial_road/atlanta/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': '69421277', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
-        {'node_id': '69249210', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
-        {'node_id': '69387071', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
-        {'node_id': '69227168', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
-        {'node_id': '69515842', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
+        {'node_id': '69421277', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/TLCC'},
+        {'node_id': '69249210', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/TLCC'},
+        {'node_id': '69387071', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/TLCC'},
+        {'node_id': '69227168', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/TLCC'},
+        {'node_id': '69515842', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/TLCC'},
     ],
-    'log_folder': './log/train/atlanta/IntelliLight',
+    'log_folder': './log/train/atlanta/TLCC',
     'gui': False,
 }
 

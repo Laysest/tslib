@@ -90,7 +90,7 @@ class TLCC(RLAgent):
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
         # 4x1 network
-        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
+        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
         
         # center_node_coord = center_node.getCoord()
         return neightbor_nodes, center_node
