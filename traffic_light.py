@@ -12,6 +12,7 @@ from VFB import VFB
 from IntelliLight import IntelliLight
 from TLCC import TLCC
 from FixedTime import FixedTime
+from MaxPressure import MaxPressure
 from glo_vars import GloVars
 from controller import ActionType, Controller
 
@@ -48,6 +49,8 @@ class TrafficLight:
             self.controller = TLCC(config=config, tf_id=self.id)
         elif self.control_algorithm == 'FixedTime':
             self.controller = FixedTime(config=config, tf_id=self.id)
+        elif self.control_algorithm == 'MaxPressure':
+            self.controller = MaxPressure(config=config, tf_id=self.id)
         else:
             print("Must implement method named %s" % self.control_algorithm)
 
