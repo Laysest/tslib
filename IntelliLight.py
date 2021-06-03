@@ -16,7 +16,7 @@ from glo_vars import GloVars
 
 traci = GloVars.traci
 
-FEATURE_SPACE = (8*4)
+# FEATURE_SPACE = (8*4)
 PHASE_SPACE = (1)
 
 # we only support 3-way and 4-way intersections
@@ -25,14 +25,14 @@ MAX_NUM_WAY = 4
 NUM_OF_RED_GREEN_PHASES = 2
 
 class IntelliLight(RLAgent):
-    def __init__(self, config=None, tf_id=None):
-        RLAgent.__init__(self, config['cycle_control'])
+    def __init__(self, config=None, tf_id=None):        
         self.config = config
         self.tf_id = tf_id
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
         self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
         self.lanes_unique = list(dict.fromkeys(self.lanes))
+        RLAgent.__init__(self, config['cycle_control'])
 
         print("%s: %s" % (center.getID(), str(nodes_id)))
 
@@ -80,7 +80,7 @@ class IntelliLight(RLAgent):
         """
         # model = Sequential()
         map_ = Input(shape=GloVars.STATE_SPACE)
-        lane_features_ = Input(shape=FEATURE_SPACE)
+        lane_features_ = Input(shape=4*len(self.lanes_unique))
         # TODO -- FEATURE_SPACE depend on the intersection
         phase_ = Input(shape=PHASE_SPACE)
         
@@ -136,8 +136,6 @@ class IntelliLight(RLAgent):
         map_ = np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
         
         lane_features_ = self.getLaneFeatures()
-        if len(lane_features_) < FEATURE_SPACE:
-            lane_features_.extend([0] * (FEATURE_SPACE - len(lane_features_)))
 
         phase = traci.trafficlight.getPhase(self.tf_id)
         state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]

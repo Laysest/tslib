@@ -52,10 +52,10 @@ config = {
         {'node_id': '69227168', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
         {'node_id': '69515842', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
     ],
-    'log_folder': './log/final/atlanta/IntelliLight',
+    'log_folder': './log/train/atlanta/IntelliLight',
     'gui': False,
 }
 
 
 sim = TSLib(config)
-sim.run(is_train=False)
+sim.run(is_train=True)
