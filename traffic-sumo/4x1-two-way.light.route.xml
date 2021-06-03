@@ -10,27 +10,27 @@
     <route id="route4A" edges="StoC_4 CtoN_4"/>
     <route id="route4B" edges="NtoC_4 CtoS_4"/>
 
-    <flow id="01A" type="passenger" begin="0" end="3600" probability="0.025" route="route1" departLane="random"/>
+    <flow id="01A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.025" route="route1" departLane="random"/>
     <flow id="01B" type="truck" begin="0" end="3600" probability="0.005" route="route1" departLane="random"/>
     <flow id="01C" type="bus" begin="0" end="3600" probability="0.005" route="route1" departLane="random"/>
 
-    <flow id="_01A" type="passenger" begin="0" end="3600" probability="0.025" route="route2" departLane="random"/>
+    <flow id="_01A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.025" route="route2" departLane="random"/>
     <flow id="_01B" type="truck" begin="0" end="3600" probability="0.005" route="route2" departLane="random"/>
     <flow id="_01C" type="bus" begin="0" end="3600" probability="0.005" route="route2" departLane="random"/>
 
-    <flow id="03A" type="passenger" begin="0" end="3600" probability="0.005" route="route1A" departLane="random"/>
+    <flow id="03A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route1A" departLane="random"/>
 
-    <flow id="04A" type="passenger" begin="0" end="3600" probability="0.005" route="route1B" departLane="random"/>
+    <flow id="04A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route1B" departLane="random"/>
 
-    <flow id="05A" type="passenger" begin="0" end="3600" probability="0.005" route="route2A" departLane="random"/>
+    <flow id="05A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route2A" departLane="random"/>
 
-    <flow id="06A" type="passenger" begin="0" end="3600" probability="0.005" route="route2B" departLane="random"/>
+    <flow id="06A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route2B" departLane="random"/>
 
-    <flow id="07A" type="passenger" begin="0" end="3600" probability="0.005" route="route3A" departLane="random"/>
+    <flow id="07A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route3A" departLane="random"/>
 
-    <flow id="08A" type="passenger" begin="0" end="3600" probability="0.005" route="route3B" departLane="random"/>
+    <flow id="08A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route3B" departLane="random"/>
 
-    <flow id="09A" type="passenger" begin="0" end="3600" probability="0.005" route="route4A" departLane="random"/>
+    <flow id="09A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route4A" departLane="random"/>
 
-    <flow id="10A" type="passenger" begin="0" end="3600" probability="0.005" route="route4B" departLane="random"/>
+    <flow id="10A" type="passenger" departSpeed="5" begin="0" end="3600" probability="0.005" route="route4B" departLane="random"/>
 </routes>

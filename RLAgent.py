@@ -1,4 +1,4 @@
-from controller import Controller
+from controller import Controller, ActionType
 from collections import deque
 import numpy as np
 import random
@@ -19,7 +19,9 @@ class Memory():
         return len(self.buffer)
 
 class RLAgent(Controller):
-    def __init__(self):
+    def __init__(self, cycle_control):
+        Controller.__init__(self)
+        self.cycle_control = cycle_control
         self.model = self.buildModel()
         self.exp_memory = Memory(GloVars.MEMORY_SIZE)
 
@@ -29,9 +31,9 @@ class RLAgent(Controller):
 
     def processState(self, state):
         print("Must <<override> processState(state)!!")
-        pass
+        return state
 
-    def computeReward(self, state, last_state):
+    def computeReward(self, state, historical_data):
         print("Muss <<override>> computeReward(state)")
         pass
     
@@ -54,4 +56,19 @@ class RLAgent(Controller):
     def makeAction(self, state):
         state_ = self.processState(state)
         out_ = self.model.predict(np.array([state_]))[0]
-        return np.argmax(out_)
+        action = np.argmax(out_)
+        is_to_change = 0 if 2*action == state['current_phase_index'] else 1
+        if is_to_change == 1:
+            return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+
+    def randomAction(self, state):
+        if random.randint(0, 1) == 0:
+            if state['current_phase_index'] == 0:
+                return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+            else:
+                return 0, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        else:
+            if state['current_phase_index'] == 2*1:
+                return 1, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]

@@ -1,4 +1,5 @@
 from environment import Environment
+from glo_vars import GloVars
 
 class TSLib:
     # constructor of TSLib
@@ -13,6 +14,7 @@ class TSLib:
             }
         """
         self.env = Environment(config)
+        GloVars.config = config
 
     # call to run the environment
     def run(self, is_train=False):

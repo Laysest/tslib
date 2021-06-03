@@ -18,22 +18,23 @@ NUM_OF_RED_GREEN_PHASES = 2
 traci = GloVars.traci
 
 class CDRL(RLAgent):
-    def __init__(self, config=None, tfID=None):
-        RLAgent.__init__(self)
+    def __init__(self, config=None, tf_id=None):
+        RLAgent.__init__(self, config['cycle_control'])
         self.config = config
-        self.tfID = tfID
+        self.tf_id = tf_id
         nodes, center = self.getNodesSortedByDirection()
         nodes_id = [node.getID() for node in nodes]
+        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
+        self.lanes_unique = list(dict.fromkeys(self.lanes))
         print("%s: %s" % (center.getID(), str(nodes_id)))
 
-    def computeReward(self, state, last_state):
+    def computeReward(self, state, historical_data):
         reward = 0
-
         # penalty for change signal
-        reward -= 0.1*state['last_action_is_change']
+        reward -= 0.1*historical_data['CDRL']['last_action_is_change']
         
         # get list vehicles
-        lanes = list(dict.fromkeys(state['lanes']))
+        lanes = self.lanes_unique
         vehs = []
         for lane in lanes:
             vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
@@ -94,18 +95,16 @@ class CDRL(RLAgent):
                 N
             W       E
             [N, E, None, W]
-
-        """
-        
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getNode(self.tfID)
+        """ 
+        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
         neightbor_nodes = center_node.getNeighboringNodes()
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
         # 4x1 network
-        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
+        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
         
         # center_node_coord = center_node.getCoord()
-        return neightbor_nodes_sorted, center_node
+        return neightbor_nodes, center_node
 
     def processState(self, state=None):
         """
@@ -168,8 +167,9 @@ class CDRL(RLAgent):
                 for j in range(GloVars.ARRAY_LENGTH):
                     position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
 
+        
         # handle the West side
-        if neightbor_nodes[3] != None:
+        if len(neightbor_nodes) > 3 and neightbor_nodes[3] != None:
             incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
             outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
             for i, lane in enumerate(incoming_edge_from_west.getLanes()):
@@ -181,8 +181,8 @@ class CDRL(RLAgent):
                 for j in range(GloVars.ARRAY_LENGTH):
                     position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
 
-        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tfID))
-    
+        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tf_id))
+
     def buildArray(self, lane=None, incoming=True):
         arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
