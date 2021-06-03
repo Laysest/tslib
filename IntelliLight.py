@@ -123,7 +123,7 @@ class IntelliLight(RLAgent):
         # isolated...
         # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
         # 4x1 network
-        neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
+        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
         
         # center_node_coord = center_node.getCoord()
         return neightbor_nodes, center_node
@@ -136,6 +136,8 @@ class IntelliLight(RLAgent):
         map_ = np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
         
         lane_features_ = self.getLaneFeatures()
+        if len(lane_features_) < FEATURE_SPACE:
+            lane_features_.extend([0] * (FEATURE_SPACE - len(lane_features_)))
 
         phase = traci.trafficlight.getPhase(self.tf_id)
         state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]

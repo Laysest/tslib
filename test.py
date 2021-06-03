@@ -34,9 +34,9 @@ from tslib import TSLib
 #     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
 #     'end': 3600,
 #     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/CDRL'},
+#         {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/TLCC'},
 #     ],
-#     'log_folder': './log/train/hz-bc-tyc_1/CDRL',
+#     'log_folder': './log/train/hz-bc-tyc_1/TLCC',
 #     'gui': False,
 # }
 
@@ -46,16 +46,16 @@ config = {
     'route': 'arterial_road/atlanta/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': '69421277', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
-        {'node_id': '69249210', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
-        {'node_id': '69387071', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
-        {'node_id': '69227168', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
-        {'node_id': '69515842', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/atlanta/VFB'},
+        {'node_id': '69421277', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
+        {'node_id': '69249210', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
+        {'node_id': '69387071', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
+        {'node_id': '69227168', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
+        {'node_id': '69515842', 'method': 'IntelliLight', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/atlanta/IntelliLight'},
     ],
-    'log_folder': './log/train/atlanta/VFB',
+    'log_folder': './log/final/atlanta/IntelliLight',
     'gui': False,
 }
 
 
 sim = TSLib(config)
-sim.run(is_train=True)
+sim.run(is_train=False)
