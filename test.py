@@ -28,30 +28,15 @@ from tslib import TSLib
 #     'gui': True
 # }
 
-<<<<<<< HEAD
-=======
 # config = {
 #     'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
 #     'veh_type': 'type.xml',
 #     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
 #     'end': 3600,
 #     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/MaxPressure'},
+#         {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/hz-bc-tyc_1/FixedTime'},
 #     ],
-#     'log_folder': './log/train/hz-bc-tyc_1/MaxPressure',
-#     'gui': True,
-# }
-
->>>>>>> 2884d54675408721ed890d566dba782432164cd4
-# config = {
-#     'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
-#     'veh_type': 'type.xml',
-#     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
-#     'end': 3600,
-#     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/hz-bc-tyc_1/MaxPressure'},
-#     ],
-#     'log_folder': './log/final/hz-bc-tyc_1/MaxPressure',
+#     'log_folder': './log/final/hz-bc-tyc_1/FixedTime',
 #     'gui': False,
 # }
 
@@ -71,32 +56,31 @@ config = {
     'gui': False,
 }
 
-
 config = {
     'net': 'grid/hz_4x4/road.net.xml',
     'veh_type': 'type.xml',
     'route': 'grid/hz_4x4/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_1_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_1_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_1_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_2_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_2_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_2_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_2_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_3_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_3_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_3_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_3_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_4_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_4_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_4_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
-        {'node_id': 'intersection_4_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_1_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_1_2', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_1_3', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_1_4', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_2_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_2_2', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_2_3', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_2_4', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_3_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_3_2', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_3_3', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_3_4', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_4_1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_4_2', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_4_3', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
+        {'node_id': 'intersection_4_4', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/FixedTime'},
     ],
-    'log_folder': './log/train/hz_4x4/MaxPressure',
-    'gui': True,
+    'log_folder': './log/final/hz_4x4/FixedTime',
+    'gui': False,
 }
 
 
