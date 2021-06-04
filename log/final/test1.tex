@@ -1,0 +1,71 @@
+% This file was created by tikzplotlib v0.9.8.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.672058823529412,0.789705882352941,0.916176470588235}
+\definecolor{color1}{rgb}{0.938725490196078,0.718137254901961,0.571078431372549}
+\definecolor{color2}{rgb}{0.596078431372549,0.854901960784314,0.654901960784314}
+\definecolor{color3}{rgb}{0.950980392156863,0.668627450980392,0.656862745098039}
+\definecolor{color4}{rgb}{0.82843137254902,0.766666666666667,0.966666666666667}
+\definecolor{color5}{rgb}{0.837745098039216,0.734803921568628,0.640686274509804}
+\definecolor{color6}{rgb}{0.944117647058824,0.726470588235294,0.879411764705882}
+
+\begin{axis}[
+tick align=outside,
+tick pos=left,
+x grid style={white!69.0196078431373!black},
+xlabel={method},
+xmin=-0.5, xmax=6.5,
+xtick style={color=black},
+xtick={0,1,2,3,4,5,6},
+xticklabels={MP,IntelliL,VFB,TLCC,FT,CDRL,SOTL},
+y grid style={white!69.0196078431373!black},
+ylabel={CO2\_emission},
+ymajorgrids,
+ymin=0, ymax=0.204000125777046,
+ytick style={color=black}
+]
+\draw[draw=none,fill=color0] (axis cs:-0.4,0) rectangle (axis cs:0.4,0.14687100776564);
+\draw[draw=none,fill=color1] (axis cs:0.6,0) rectangle (axis cs:1.4,0.135835801945359);
+\draw[draw=none,fill=color2] (axis cs:1.6,0) rectangle (axis cs:2.4,0.138798139131691);
+\draw[draw=none,fill=color3] (axis cs:2.6,0) rectangle (axis cs:3.4,0.190085759177038);
+\draw[draw=none,fill=color4] (axis cs:3.6,0) rectangle (axis cs:4.4,0.16783498589729);
+\draw[draw=none,fill=color5] (axis cs:4.6,0) rectangle (axis cs:5.4,0.133458683771737);
+\draw[draw=none,fill=color6] (axis cs:5.6,0) rectangle (axis cs:6.4,0.16167640316851);
+\addplot [line width=1.08pt, white!26!black]
+table {%
+0 0.144516533467954
+0 0.149093307652112
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+1 0.134591736369989
+1 0.13714896321797
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+2 0.137479153722528
+2 0.140211349948179
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+3 0.186193160057285
+3 0.194285834073377
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+4 0.165441588310549
+4 0.17036948283276
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+5 0.13241452867533
+5 0.134455208354723
+};
+\addplot [line width=1.08pt, white!26!black]
+table {%
+6 0.157840379290307
+6 0.165319299280318
+};
+\end{axis}
+
+\end{tikzpicture}
