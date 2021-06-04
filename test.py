@@ -28,17 +28,17 @@ from tslib import TSLib
 #     'gui': True
 # }
 
-config = {
-    'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
-    'veh_type': 'type.xml',
-    'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
-    'end': 3600,
-    'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/MaxPressure'},
-    ],
-    'log_folder': './log/train/hz-bc-tyc_1/MaxPressure',
-    'gui': True,
-}
+# config = {
+#     'net': 'isolated-intersection/hz-bc-tyc_1/road.net.xml',
+#     'veh_type': 'type.xml',
+#     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
+#     'end': 3600,
+#     'traffic_lights': [
+#         {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/MaxPressure'},
+#     ],
+#     'log_folder': './log/train/hz-bc-tyc_1/MaxPressure',
+#     'gui': True,
+# }
 
 # config = {
 #     'net': 'arterial_road/atlanta/road.net.xml',
@@ -55,6 +55,34 @@ config = {
 #     'log_folder': './log/train/atlanta/MaxPressure',
 #     'gui': False,
 # }
+
+
+config = {
+    'net': 'grid/hz_4x4/road.net.xml',
+    'veh_type': 'type.xml',
+    'route': 'grid/hz_4x4/flow.route.xml',
+    'end': 3600,
+    'traffic_lights': [
+        {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_1_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_1_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_1_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_2_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_2_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_2_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_2_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_3_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_3_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_3_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_3_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_4_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_4_2', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_4_3', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+        {'node_id': 'intersection_4_4', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/MaxPressure'},
+    ],
+    'log_folder': './log/train/hz_4x4/MaxPressure',
+    'gui': True,
+}
 
 
 sim = TSLib(config)
