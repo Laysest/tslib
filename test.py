@@ -56,33 +56,33 @@ config = {
     'gui': False,
 }
 
-config = {
-    'net': 'grid/hz_4x4/road.net.xml',
-    'veh_type': 'type.xml',
-    'route': 'grid/hz_4x4/flow.route.xml',
-    'end': 3600,
-    'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_1_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_1_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_1_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_2_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_2_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_2_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_2_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_3_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_3_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_3_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_3_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_4_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_4_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_4_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-        {'node_id': 'intersection_4_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
-    ],
-    'log_folder': './log/train/hz_4x4/TLCC',
-    'gui': False,
-}
+# config = {
+#     'net': 'grid/hz_4x4/road.net.xml',
+#     'veh_type': 'type.xml',
+#     'route': 'grid/hz_4x4/flow.route.xml',
+#     'end': 3600,
+#     'traffic_lights': [
+#         {'node_id': 'intersection_1_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_1_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_1_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_1_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_2_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_2_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_2_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_2_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_3_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_3_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_3_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_3_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_4_1', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_4_2', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_4_3', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#         {'node_id': 'intersection_4_4', 'method': 'TLCC', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/TLCC'},
+#     ],
+#     'log_folder': './log/train/hz_4x4/TLCC',
+#     'gui': False,
+# }
 
 
 sim = TSLib(config)
-sim.run(is_train=True)
+sim.run(is_train=False)
