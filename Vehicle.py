@@ -62,7 +62,8 @@ class Vehicle:
                 'distance': self.log[self.now - 1]['distance'],
                 'travel_time': self.now - self.start_time,
                 'avg_speed': self.log[self.now - 1]['distance'] / (self.now - self.start_time),
-                'finished': is_finish
+                'finished': is_finish,
+                'all_log': self.log
             }
         else:
             self.final_log = {
@@ -74,5 +75,6 @@ class Vehicle:
                 'distance': self.log[self.now - 1]['distance'],
                 'travel_time': self.now - self.start_time,
                 'avg_speed': 0,
-                'finished': is_finish
+                'finished': is_finish,
+                'all_log': self.log
             }
