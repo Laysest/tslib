@@ -1,131 +1,82 @@
 % This file was created by tikzplotlib v0.9.8.
 \begin{tikzpicture}
 
-\definecolor{color0}{rgb}{0.0622549019607843,0.144607843137255,0.43578431372549}
-\definecolor{color1}{rgb}{0.613725490196078,0.281372549019608,0.131372549019608}
-\definecolor{color2}{rgb}{0.117156862745098,0.39656862745098,0.14656862745098}
-\definecolor{color3}{rgb}{0.480392156862745,0.092156862745098,0.0686274509803921}
-\definecolor{color4}{rgb}{0.331862745098039,0.158333333333333,0.402450980392157}
+\definecolor{color0}{rgb}{0.91078431372549,0.563725490196078,0.746078431372549}
+\definecolor{color1}{rgb}{0.58921568627451,0.353921568627451,0.218627450980392}
+\definecolor{color2}{rgb}{0.9,0.9,0.3}
+\definecolor{color3}{rgb}{0.875,0.498529411764706,0.125}
+\definecolor{color4}{rgb}{0.565196078431373,0.347549019607843,0.597549019607843}
+\definecolor{color5}{rgb}{0.348529411764706,0.636764705882353,0.339705882352941}
+\definecolor{color6}{rgb}{0.278921568627451,0.487745098039216,0.658333333333333}
 
 \begin{axis}[
 tick align=outside,
 tick pos=left,
 x grid style={white!69.0196078431373!black},
-xlabel={method},
-xmin=-0.5, xmax=2.5,
+xlabel={intersection},
+xmin=-0.5, xmax=4.5,
 xtick style={color=black},
-xtick={0,1,2},
-xticklabels={FixedTime,CDRL,VFB},
 y grid style={white!69.0196078431373!black},
 ylabel={waiting\_time},
-ymin=-138.531332474314, ymax=964.061193585425,
+ymin=0, ymax=838.216878918495,
 ytick style={color=black}
 ]
-\draw[draw=none,fill=color0,fill opacity=0.6] (axis cs:-0.4,0) rectangle (axis cs:-0.24,47.1496928166352);
-\addlegendimage{ybar,ybar legend,draw=none,fill=color0,fill opacity=0.6};
-\addlegendentry{0}
+\draw[draw=none,fill=color0] (axis cs:-0.4,0) rectangle (axis cs:-0.285714285714286,11.1116199198626);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color0};
+\addlegendentry{MaxPressure}
 
-\draw[draw=none,fill=color0,fill opacity=0.6] (axis cs:0.6,0) rectangle (axis cs:0.76,8.29904340376928);
-\draw[draw=none,fill=color0,fill opacity=0.6] (axis cs:1.6,0) rectangle (axis cs:1.76,26.4619097222222);
-\draw[draw=none,fill=color1,fill opacity=0.6] (axis cs:-0.24,0) rectangle (axis cs:-0.08,12.3184310018904);
-\addlegendimage{ybar,ybar legend,draw=none,fill=color1,fill opacity=0.6};
-\addlegendentry{1}
+\draw[draw=none,fill=color0] (axis cs:0.6,0) rectangle (axis cs:0.714285714285714,2.74424728105323);
+\draw[draw=none,fill=color0] (axis cs:1.6,0) rectangle (axis cs:1.71428571428571,8.59292119824461);
+\draw[draw=none,fill=color0] (axis cs:2.6,0) rectangle (axis cs:2.71428571428571,7.31845067735165);
+\draw[draw=none,fill=color0] (axis cs:3.6,0) rectangle (axis cs:3.71428571428571,18.8854464796795);
+\draw[draw=none,fill=color1] (axis cs:-0.285714285714286,0) rectangle (axis cs:-0.171428571428571,8.82375979112271);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color1};
+\addlegendentry{IntelliLight}
 
-\draw[draw=none,fill=color1,fill opacity=0.6] (axis cs:0.76,0) rectangle (axis cs:0.92,0.203198172472873);
-\draw[draw=none,fill=color1,fill opacity=0.6] (axis cs:1.76,0) rectangle (axis cs:1.92,11.5770555555556);
-\draw[draw=none,fill=color2,fill opacity=0.6] (axis cs:-0.08,0) rectangle (axis cs:0.08,7.45849086326402);
-\addlegendimage{ybar,ybar legend,draw=none,fill=color2,fill opacity=0.6};
-\addlegendentry{2}
+\draw[draw=none,fill=color1] (axis cs:0.714285714285714,0) rectangle (axis cs:0.828571428571429,0.701218450826806);
+\draw[draw=none,fill=color1] (axis cs:1.71428571428571,0) rectangle (axis cs:1.82857142857143,0.806498404409632);
+\draw[draw=none,fill=color1] (axis cs:2.71428571428571,0) rectangle (axis cs:2.82857142857143,3.79757760371337);
+\draw[draw=none,fill=color1] (axis cs:3.71428571428571,0) rectangle (axis cs:3.82857142857143,247.950010879025);
+\draw[draw=none,fill=color2] (axis cs:-0.171428571428571,0) rectangle (axis cs:-0.0571428571428571,26.4619097222222);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color2};
+\addlegendentry{VFB}
 
-\draw[draw=none,fill=color2,fill opacity=0.6] (axis cs:0.92,0) rectangle (axis cs:1.08,0.330001903674091);
-\draw[draw=none,fill=color2,fill opacity=0.6] (axis cs:1.92,0) rectangle (axis cs:2.08,21.3670833333333);
-\draw[draw=none,fill=color3,fill opacity=0.6] (axis cs:0.08,0) rectangle (axis cs:0.24,29.6946282293636);
-\addlegendimage{ybar,ybar legend,draw=none,fill=color3,fill opacity=0.6};
-\addlegendentry{3}
+\draw[draw=none,fill=color2] (axis cs:0.828571428571429,0) rectangle (axis cs:0.942857142857143,11.5770555555556);
+\draw[draw=none,fill=color2] (axis cs:1.82857142857143,0) rectangle (axis cs:1.94285714285714,21.3670833333333);
+\draw[draw=none,fill=color2] (axis cs:2.82857142857143,0) rectangle (axis cs:2.94285714285714,0.681666666666667);
+\draw[draw=none,fill=color2] (axis cs:3.82857142857143,0) rectangle (axis cs:3.94285714285714,412.764930555556);
+\draw[draw=none,fill=color3] (axis cs:-0.0571428571428571,0) rectangle (axis cs:0.0571428571428571,149.986423611111);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color3};
+\addlegendentry{TLCC}
 
-\draw[draw=none,fill=color3,fill opacity=0.6] (axis cs:1.08,0) rectangle (axis cs:1.24,0.536550542547116);
-\draw[draw=none,fill=color3,fill opacity=0.6] (axis cs:2.08,0) rectangle (axis cs:2.24,0.681666666666667);
-\draw[draw=none,fill=color4,fill opacity=0.6] (axis cs:0.24,0) rectangle (axis cs:0.4,80.2650047258979);
-\addlegendimage{ybar,ybar legend,draw=none,fill=color4,fill opacity=0.6};
-\addlegendentry{4}
+\draw[draw=none,fill=color3] (axis cs:0.942857142857143,0) rectangle (axis cs:1.05714285714286,129.755277777778);
+\draw[draw=none,fill=color3] (axis cs:1.94285714285714,0) rectangle (axis cs:2.05714285714286,214.127731481482);
+\draw[draw=none,fill=color3] (axis cs:2.94285714285714,0) rectangle (axis cs:3.05714285714286,126.422638888889);
+\draw[draw=none,fill=color3] (axis cs:3.94285714285714,0) rectangle (axis cs:4.05714285714286,288.026284722222);
+\draw[draw=none,fill=color4] (axis cs:0.0571428571428571,0) rectangle (axis cs:0.171428571428571,47.1496928166352);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color4};
+\addlegendentry{FixedTime}
 
-\draw[draw=none,fill=color4,fill opacity=0.6] (axis cs:1.24,0) rectangle (axis cs:1.4,9.55482581382067);
-\draw[draw=none,fill=color4,fill opacity=0.6] (axis cs:2.24,0) rectangle (axis cs:2.4,412.764930555556);
-\addplot [line width=1.08pt, white!26!black]
-table {%
--0.32 4.6607779326327
--0.32 89.6386077006376
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-0.68 2.15881851672725
-0.68 14.4392682908113
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-1.68 -46.1712738839139
-1.68 99.0950933283584
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
--0.16 -10.4982250331931
--0.16 35.1350870369738
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-0.84 -0.491557449458813
-0.84 0.897953794404558
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-1.84 -25.8871824469452
-1.84 49.0412935580564
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-0 -8.59122928888075
-0 23.5082110154088
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-1 -0.662020821301184
-1 1.32202462864937
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-2 -45.4341481840107
-2 88.1683148506773
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-0.16 -33.4316358646415
-0.16 92.8208923233686
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-1.16 -0.529914044473261
-1.16 1.60301512956749
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-2.16 -1.25201553365785
-2.16 2.61534886699118
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-0.32 -3.95909875106457
-0.32 164.48910820286
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-1.32 1.79083771084127
-1.32 17.3188139168001
-};
-\addplot [line width=1.08pt, white!26!black]
-table {%
-2.32 -88.4134903806894
-2.32 913.943351491801
-};
+\draw[draw=none,fill=color4] (axis cs:1.05714285714286,0) rectangle (axis cs:1.17142857142857,12.3184310018904);
+\draw[draw=none,fill=color4] (axis cs:2.05714285714286,0) rectangle (axis cs:2.17142857142857,7.45849086326402);
+\draw[draw=none,fill=color4] (axis cs:3.05714285714286,0) rectangle (axis cs:3.17142857142857,29.6946282293636);
+\draw[draw=none,fill=color4] (axis cs:4.05714285714286,0) rectangle (axis cs:4.17142857142857,80.2650047258979);
+\draw[draw=none,fill=color5] (axis cs:0.171428571428571,0) rectangle (axis cs:0.285714285714286,8.29904340376928);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color5};
+\addlegendentry{CDRL}
+
+\draw[draw=none,fill=color5] (axis cs:1.17142857142857,0) rectangle (axis cs:1.28571428571429,0.203198172472873);
+\draw[draw=none,fill=color5] (axis cs:2.17142857142857,0) rectangle (axis cs:2.28571428571429,0.330001903674091);
+\draw[draw=none,fill=color5] (axis cs:3.17142857142857,0) rectangle (axis cs:3.28571428571429,0.536550542547116);
+\draw[draw=none,fill=color5] (axis cs:4.17142857142857,0) rectangle (axis cs:4.28571428571429,9.55482581382067);
+\draw[draw=none,fill=color6] (axis cs:0.285714285714286,0) rectangle (axis cs:0.4,417.323537095089);
+\addlegendimage{ybar,ybar legend,draw=none,fill=color6};
+\addlegendentry{SOTL}
+
+\draw[draw=none,fill=color6] (axis cs:1.28571428571429,0) rectangle (axis cs:1.4,14.9960292580982);
+\draw[draw=none,fill=color6] (axis cs:2.28571428571429,0) rectangle (axis cs:2.4,20.5746255660049);
+\draw[draw=none,fill=color6] (axis cs:3.28571428571429,0) rectangle (axis cs:3.4,266.116945315221);
+\draw[draw=none,fill=color6] (axis cs:4.28571428571429,0) rectangle (axis cs:4.4,798.301789446186);
 \end{axis}
 
 \end{tikzpicture}

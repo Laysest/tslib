@@ -54,7 +54,7 @@ class TrafficLight:
         else:
             print("Must implement method named %s" % self.control_algorithm)
 
-        self.writer = tf.summary.create_file_writer('./tensorboard/atlanta/%s-%s' % (self.id, self.control_algorithm))
+        self.writer = tf.summary.create_file_writer('./tensorboard/hz_4x4/%s-%s' % (self.id, self.control_algorithm))
         self.current_phase = 0
         self.last_action, self.last_processed_state, self.last_state = None, None, None
         self.last_action_is_change = 0
