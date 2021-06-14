@@ -9,8 +9,12 @@ import tensorflow as tf
 from Vehicle import Vehicle
 import pickle
 import os
+import threading
 
 traci = GloVars.traci
+
+def replay_in_parallel(traffic_light):
+    traffic_light.replay()
 
 class Environment():
     def __init__(self, config):
@@ -99,11 +103,17 @@ class Environment():
                 while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                     self.update()
                     GloVars.step += 1
+                    threads = {}
                     for i in range(len(self.traffic_lights)):
                         self.traffic_lights[i].update(is_train=is_train)
                         self.traffic_lights[i].log_step()
                         if count % GloVars.INTERVAL == 0:
-                            self.traffic_lights[i].replay()
+                            threads[i] = threading.Thread(target=replay_in_parallel, args=(self.traffic_lights[i],))
+                            threads[i].start()
+                            # self.traffic_lights[i].replay()
+                    if count % GloVars.INTERVAL == 0:
+                        for i in range(len(self.traffic_lights)):
+                            threads[i].join()
                     traci.simulationStep()
                     count += 1
                 self.close(ep=e)

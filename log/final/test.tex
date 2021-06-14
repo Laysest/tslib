@@ -1,69 +1,171 @@
 % This file was created by tikzplotlib v0.9.8.
 \begin{tikzpicture}
 
-\definecolor{color0}{rgb}{0.886274509803922,0.290196078431373,0.2}
-\definecolor{color1}{rgb}{0.203921568627451,0.541176470588235,0.741176470588235}
+\definecolor{color0}{rgb}{0.968627450980392,0.505882352941176,0.749019607843137}
+\definecolor{color1}{rgb}{0.650980392156863,0.337254901960784,0.156862745098039}
+\definecolor{color2}{rgb}{1,1,0.2}
+\definecolor{color3}{rgb}{0.596078431372549,0.305882352941176,0.63921568627451}
+\definecolor{color4}{rgb}{0.301960784313725,0.686274509803922,0.290196078431373}
+\definecolor{color5}{rgb}{0.215686274509804,0.494117647058824,0.72156862745098}
 
 \begin{axis}[
-axis background/.style={fill=white!89.8039215686275!black},
-axis line style={white},
+legend cell align={left},
+legend style={
+  fill opacity=0.8,
+  draw opacity=1,
+  text opacity=1,
+  at={(0.03,0.97)},
+  anchor=north west,
+  draw=white!80!black
+},
 tick align=outside,
 tick pos=left,
-title={Simple plot \(\displaystyle \frac{\alpha}{2}\)},
-x grid style={white},
-xlabel={time (s)},
-xmin=-0.095, xmax=1.995,
-xtick style={color=white!33.3333333333333!black},
-y grid style={white},
-ylabel={Voltage (mV)},
-ymin=-1.1, ymax=1.1,
-ytick style={color=white!33.3333333333333!black}
+x grid style={white!69.0196078431373!black},
+xlabel={intersection},
+xmin=0.8, xmax=5.2,
+xtick style={color=black},
+y grid style={white!69.0196078431373!black},
+ylabel={CO2},
+ymin=0.0803714264562545, ymax=0.56846136847197,
+ytick style={color=black}
 ]
-\addplot [semithick, color0, mark=*, mark size=3, mark options={solid}]
+\path [draw=color0, fill=color0, opacity=0.2]
+(axis cs:1,0.144076287201273)
+--(axis cs:1,0.131136512656802)
+--(axis cs:2,0.161165063914624)
+--(axis cs:3,0.186412928984488)
+--(axis cs:4,0.211908367464521)
+--(axis cs:5,0.275649288468385)
+--(axis cs:5,0.290779723763137)
+--(axis cs:5,0.290779723763137)
+--(axis cs:4,0.225670672922114)
+--(axis cs:3,0.200254742036799)
+--(axis cs:2,0.175222273543686)
+--(axis cs:1,0.144076287201273)
+--cycle;
+
+\path [draw=color1, fill=color1, opacity=0.2]
+(axis cs:1,0.154344157836425)
+--(axis cs:1,0.136283910037795)
+--(axis cs:2,0.170539928226037)
+--(axis cs:3,0.199414519761953)
+--(axis cs:4,0.22667437044548)
+--(axis cs:5,0.323205184605595)
+--(axis cs:5,0.345554110240378)
+--(axis cs:5,0.345554110240378)
+--(axis cs:4,0.246201950977793)
+--(axis cs:3,0.217699657918338)
+--(axis cs:2,0.187641335152504)
+--(axis cs:1,0.154344157836425)
+--cycle;
+
+\path [draw=color2, fill=color2, opacity=0.2]
+(axis cs:1,0.120926485390828)
+--(axis cs:1,0.102557332911514)
+--(axis cs:2,0.147722463268105)
+--(axis cs:3,0.20512230398351)
+--(axis cs:4,0.282734636244309)
+--(axis cs:5,0.378832941512781)
+--(axis cs:5,0.419807423397705)
+--(axis cs:5,0.419807423397705)
+--(axis cs:4,0.313457376554152)
+--(axis cs:3,0.226181322755324)
+--(axis cs:2,0.166090017530072)
+--(axis cs:1,0.120926485390828)
+--cycle;
+
+\path [draw=color3, fill=color3, opacity=0.2]
+(axis cs:1,0.213682279794112)
+--(axis cs:1,0.182931595365837)
+--(axis cs:2,0.248508480918395)
+--(axis cs:3,0.297654009893447)
+--(axis cs:4,0.362663971589247)
+--(axis cs:5,0.481131229000866)
+--(axis cs:5,0.517841031597104)
+--(axis cs:5,0.517841031597104)
+--(axis cs:4,0.39562176589107)
+--(axis cs:3,0.325567639398487)
+--(axis cs:2,0.277241327118971)
+--(axis cs:1,0.213682279794112)
+--cycle;
+
+\path [draw=color4, fill=color4, opacity=0.2]
+(axis cs:1,0.168273159910273)
+--(axis cs:1,0.151991528863738)
+--(axis cs:2,0.186044277201004)
+--(axis cs:3,0.218016023412234)
+--(axis cs:4,0.249318939504627)
+--(axis cs:5,0.300893618178163)
+--(axis cs:5,0.317212871887332)
+--(axis cs:5,0.317212871887332)
+--(axis cs:4,0.265811353869144)
+--(axis cs:3,0.235631877069474)
+--(axis cs:2,0.202617292238913)
+--(axis cs:1,0.168273159910273)
+--cycle;
+
+\path [draw=color5, fill=color5, opacity=0.2]
+(axis cs:1,0.293805995667343)
+--(axis cs:1,0.226296197700186)
+--(axis cs:2,0.261707789826565)
+--(axis cs:3,0.297357725771784)
+--(axis cs:4,0.358070154313666)
+--(axis cs:5,0.469478493595604)
+--(axis cs:5,0.546275462016711)
+--(axis cs:5,0.546275462016711)
+--(axis cs:4,0.43425938103596)
+--(axis cs:3,0.362667182062703)
+--(axis cs:2,0.326610108301953)
+--(axis cs:1,0.293805995667343)
+--cycle;
+
+\addplot [semithick, color0, mark=*, mark size=3, mark options={solid,draw=white}, forget plot]
 table {%
-0 0
-0.1 0.587785252292473
-0.2 0.951056516295154
-0.3 0.951056516295154
-0.4 0.587785252292473
-0.5 1.22464679914735e-16
-0.6 -0.587785252292473
-0.7 -0.951056516295154
-0.8 -0.951056516295154
-0.9 -0.587785252292473
-1 -2.44929359829471e-16
-1.1 0.587785252292474
-1.2 0.951056516295154
-1.3 0.951056516295154
-1.4 0.587785252292473
-1.5 3.67394039744206e-16
-1.6 -0.587785252292473
-1.7 -0.951056516295154
-1.8 -0.951056516295154
-1.9 -0.587785252292473
+1 0.137728555810189
+2 0.168251162947959
+3 0.193303155651879
+4 0.218672552805496
+5 0.283085830492407
 };
-\addplot [semithick, color1, mark=*, mark size=3, mark options={solid}]
+\addplot [semithick, color1, dash pattern=on 4pt off 1.5pt, mark=triangle*, mark size=3, mark options={solid,draw=white}, forget plot]
 table {%
-0 1
-0.1 0.809016994374947
-0.2 0.309016994374947
-0.3 -0.309016994374948
-0.4 -0.809016994374947
-0.5 -1
-0.6 -0.809016994374947
-0.7 -0.309016994374948
-0.8 0.309016994374947
-0.9 0.809016994374947
-1 1
-1.1 0.809016994374947
-1.2 0.309016994374947
-1.3 -0.309016994374947
-1.4 -0.809016994374947
-1.5 -1
-1.6 -0.809016994374948
-1.7 -0.309016994374946
-1.8 0.309016994374947
-1.9 0.809016994374947
+1 0.145517703386577
+2 0.179324059678831
+3 0.208542725807787
+4 0.235895521533628
+5 0.333947978276549
+};
+\addplot [semithick, color2, dash pattern=on 1pt off 1pt, mark=triangle*, mark size=3, mark options={solid,rotate=180,draw=white}, forget plot]
+table {%
+1 0.111928537436093
+2 0.156665080812323
+3 0.214831966795343
+4 0.297939433544232
+5 0.39790918256556
+};
+\addplot [semithick, color3, dash pattern=on 3pt off 1.25pt on 1.5pt off 1.25pt, mark=square*, mark size=3, mark options={solid,draw=white}, forget plot]
+table {%
+1 0.19732656660629
+2 0.262625607732793
+3 0.311747893960963
+4 0.380169697265129
+5 0.499528549705401
+};
+\addplot [semithick, color4, dash pattern=on 5pt off 1pt on 1pt off 1pt, mark=pentagon*, mark size=3, mark options={solid,draw=white}, forget plot]
+table {%
+1 0.160150103135249
+2 0.194087993815605
+3 0.226534776102969
+4 0.257242800138126
+5 0.30886135091205
+};
+\addplot [semithick, color5, dash pattern=on 3pt off 1.25pt on 1.25pt off 1.25pt on 1.25pt off 1.25pt, mark=diamond*, mark size=3, mark options={solid,draw=white}, forget plot]
+table {%
+1 0.259406365252168
+2 0.293319918862752
+3 0.327645490567903
+4 0.395693885542491
+5 0.506602019669505
 };
 \end{axis}
 
