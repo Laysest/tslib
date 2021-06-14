@@ -19,6 +19,29 @@ class Vehicle:
         self.updateTime()
         self.cur_lane = traci.vehicle.getLaneID(self.id)
         self.cur_speed = traci.vehicle.getSpeed(self.id)
+        cur_edge = self.cur_lane[:-2]
+        route = {}
+        if (self.now - 1) not in self.log.keys():
+            route = [{
+                        'edge': cur_edge,
+                        'first_time_step': self.now,
+                        'last_time_step': None
+            }]  
+        else:
+            last_route = self.log[self.now - 1]['route'].copy()
+            # still current edge
+            if cur_edge == last_route[-1]['edge']:
+                last_route[-1]['last_time_step'] = self.now
+                route = last_route
+            # next edge
+            else:
+                last_route.append({
+                    'edge': cur_edge,
+                    'first_time_step': self.now,
+                    'last_time_step': None
+                })
+                route = last_route
+
         self.log[self.now] = {
             'lane': traci.vehicle.getLaneID(self.id),
             'speed': self.cur_speed,
@@ -26,7 +49,8 @@ class Vehicle:
             'CO_emission': traci.vehicle.getCOEmission(self.id),
             'fuel_consumption': traci.vehicle.getFuelConsumption(self.id),
             'waiting_time': traci.vehicle.getAccumulatedWaitingTime(self.id),
-            'distance': traci.vehicle.getDistance(self.id)
+            'distance': traci.vehicle.getDistance(self.id),
+            'route': route
         }
 
     def updateTime(self):

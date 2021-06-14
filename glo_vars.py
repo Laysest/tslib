@@ -24,3 +24,4 @@ class GloVars:
     step = 0
     traci = traci
     config = None
+    vehicles = None

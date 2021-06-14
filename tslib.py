@@ -17,5 +17,8 @@ class TSLib:
         GloVars.config = config
 
     # call to run the environment
-    def run(self, is_train=False):
-        self.env.run(is_train=is_train)
+    def run(self):
+        self.env.run()
+    
+    def train(self):
+        self.env.train()

@@ -34,10 +34,10 @@ from tslib import TSLib
 #     'route': 'isolated-intersection/hz-bc-tyc_1/flow.route.xml',
 #     'end': 3600,
 #     'traffic_lights': [
-#         {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/hz-bc-tyc_1/CDRL'},
+#         {'node_id': 'intersection_1_1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz-bc-tyc_1/MaxPressure'},
 #     ],
-#     'log_folder': './log/final/hz-bc-tyc_1/CDRL',
-#     'gui': False,
+#     'log_folder': './log/train/hz-bc-tyc_1/MaxPressure',
+#     'gui': True,
 # }
 
 # config = {
@@ -56,33 +56,44 @@ from tslib import TSLib
 #     'gui': False,
 # }
 
+# config = {
+#     'net': 'grid/hz_4x4/road.net.xml',
+#     'veh_type': 'type.xml',
+#     'route': 'grid/hz_4x4/flow.route.xml',
+#     'end': 3600,
+#     'traffic_lights': [
+#         {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_1_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_1_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_1_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_2_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_2_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_2_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_2_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_3_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_3_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_3_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_3_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_4_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_4_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_4_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#         {'node_id': 'intersection_4_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+#     ],
+#     'log_folder': './log/train/hz_4x4/CDRL',
+#     'gui': False,
+# }
+
 config = {
-    'net': 'grid/hz_4x4/road.net.xml',
+    'net': 'isolated-intersection/test-bed/road.net.xml',
     'veh_type': 'type.xml',
-    'route': 'grid/hz_4x4/flow.route.xml',
+    'route': 'isolated-intersection/test-bed/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_1_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_1_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_1_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_2_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_2_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_2_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_2_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_3_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_3_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_3_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_3_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_4_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_4_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_4_3', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
-        {'node_id': 'intersection_4_4', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
+        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/test-bed/MaxPressure'},
     ],
-    'log_folder': './log/train/hz_4x4/CDRL',
-    'gui': False,
+    'log_folder': './log/final/test-bed/MaxPressure',
+    'gui': True,
 }
 
-
 sim = TSLib(config)
-sim.run(is_train=True)
+sim.run()

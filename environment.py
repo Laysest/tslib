@@ -50,6 +50,7 @@ class Environment():
         for veh_id_ in self.vehicles:
             if not self.vehicles[veh_id_].isFinished():
                 self.vehicles[veh_id_].update()
+        GloVars.vehicles = self.vehicles
     
     def getEdgesOfNode(self, tf_id):
         in_edges = []
@@ -59,7 +60,7 @@ class Environment():
                 in_edges.append(edge)
             # elif edge.get
 
-    def run(self, is_train=False):
+    def train(self):
         """
             To run a simulation based on the configurate
         """
@@ -74,71 +75,78 @@ class Environment():
 
         # self.edges = str(sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getEdges()
         pretrain_ = True
-        if is_train:
-
-            ### Pre-train: ------------------------
-            if pretrain_:
-                traci.start(sumo_cmd)
-                self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
-                while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-                    self.update()
-                    for i in range(len(self.traffic_lights)):
-                        self.traffic_lights[i].update(is_train=False, pretrain=True)
-                        self.traffic_lights[i].log_step()
-                    traci.simulationStep()
-                self.close()
-            #### ------------------------------------------
-
-            for e in range(50):
-                print("Episode: %d" % e)
-                traci.start(sumo_cmd)
-
-                # create traffic_lights just once
-                if e == 0 and pretrain_ == False:
-                    self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
-                else:
-                    for i in range(len(self.traffic_lights)):
-                        self.traffic_lights[i].reset()
-                count = 1
-                while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
-                    self.update()
-                    GloVars.step += 1
-                    threads = {}
-                    for i in range(len(self.traffic_lights)):
-                        self.traffic_lights[i].update(is_train=is_train)
-                        self.traffic_lights[i].log_step()
-                        if count % GloVars.INTERVAL == 0:
-                            threads[i] = threading.Thread(target=replay_in_parallel, args=(self.traffic_lights[i],))
-                            threads[i].start()
-                            # self.traffic_lights[i].replay()
-                    if count % GloVars.INTERVAL == 0:
-                        for i in range(len(self.traffic_lights)):
-                            threads[i].join()
-                    traci.simulationStep()
-                    count += 1
-                self.close(ep=e)
-
-                if e > 0 and e % 5 == 0:
-                    for i in range(len(self.traffic_lights)):
-                        self.traffic_lights[i].saveModel(e)
-                print("-------------------------")
-                print("")
-
-            for i in range(len(self.traffic_lights)):
-                self.traffic_lights[i].saveModel(e)
-
-        else:
+        ### Pre-train: ------------------------
+        if pretrain_:
             traci.start(sumo_cmd)
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
-            for tf in self.traffic_lights:
-                tf.loadModel()
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
                 self.update()
                 for i in range(len(self.traffic_lights)):
-                    self.traffic_lights[i].update(is_train=is_train)
+                    self.traffic_lights[i].update(is_train=False, pretrain=True)
                     self.traffic_lights[i].log_step()
                 traci.simulationStep()
             self.close()
+        #### ------------------------------------------
+
+        for e in range(50):
+            print("Episode: %d" % e)
+            traci.start(sumo_cmd)
+
+            # create traffic_lights just once
+            if e == 0 and pretrain_ == False:
+                self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
+            else:
+                for i in range(len(self.traffic_lights)):
+                    self.traffic_lights[i].reset()
+            count = 1
+            while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
+                self.update()
+                GloVars.step += 1
+                threads = {}
+                for i in range(len(self.traffic_lights)):
+                    self.traffic_lights[i].update(is_train=True)
+                    self.traffic_lights[i].log_step()
+                    if count % GloVars.INTERVAL == 0:
+                        threads[i] = threading.Thread(target=replay_in_parallel, args=(self.traffic_lights[i],))
+                        threads[i].start()
+                        # self.traffic_lights[i].replay()
+                if count % GloVars.INTERVAL == 0:
+                    for i in range(len(self.traffic_lights)):
+                        threads[i].join()
+                traci.simulationStep()
+                count += 1
+            self.close(ep=e)
+
+            if e > 0 and e % 5 == 0:
+                for i in range(len(self.traffic_lights)):
+                    self.traffic_lights[i].saveModel(e)
+            print("-------------------------")
+            print("")
+
+        for i in range(len(self.traffic_lights)):
+            self.traffic_lights[i].saveModel(e)
+
+    def run(self):
+        if self.config["gui"]:
+            sumo_cmd = ["/usr/bin/sumo-gui"]
+        else:
+            sumo_cmd = ["/usr/bin/sumo"]
+
+        sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
+                      "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
+        sumo_cmd.extend(sumo_config)
+        traci.start(sumo_cmd)
+        self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
+        for tf in self.traffic_lights:
+            tf.loadModel()
+        while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
+            self.update()
+            for i in range(len(self.traffic_lights)):
+                self.traffic_lights[i].update(is_train=False)
+                self.traffic_lights[i].log_step()
+            traci.simulationStep()
+        self.close()
+
 
     def close(self, ep=-1):
         """
@@ -172,4 +180,5 @@ class Environment():
         if not os.path.exists(self.config['log_folder']):
             os.makedirs(self.config['log_folder'])
         pickle.dump(self.log, open('%s/log.pkl' % self.config['log_folder'], 'wb'))
-        
+    
+    
