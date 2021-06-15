@@ -17,9 +17,9 @@ class GloVars:
     LENGTH_CELL = 5
     BATCH_SIZE = 64
     GAMMA = 0.95
-    EPOCHS = 50
+    EPOCHS = 20
     SAMPLE_SIZE = 256 
-    INTERVAL = 300
+    INTERVAL = 900
     MEMORY_SIZE = 2048
     step = 0
     traci = traci

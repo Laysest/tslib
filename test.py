@@ -84,14 +84,14 @@ from tslib import TSLib
 # }
 
 config = {
-    'net': 'isolated-intersection/test-bed/road.net.xml',
+    'net': 'isolated-intersection/testbed-full/road.net.xml',
     'veh_type': 'type.xml',
-    'route': 'isolated-intersection/test-bed/flow.route.xml',
-    'end': 3600,
+    'route': 'isolated-intersection/testbed-full/flow.route.xml',
+    'end': 3600*24,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/test-bed/FixedTime'},
+        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/testbed-full/MaxPressure'},
     ],
-    'log_folder': './log/final/test-bed/FixedTime',
+    'log_folder': './log/final/testbed-full/MaxPressure',
     'gui': False,
 }
 
