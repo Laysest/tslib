@@ -89,10 +89,10 @@ config = {
     'route': 'isolated-intersection/test-bed/flow.route.xml',
     'end': 3600,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/test-bed/MaxPressure'},
+        {'node_id': 'gneJ1', 'method': 'FixedTime', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/final/test-bed/FixedTime'},
     ],
-    'log_folder': './log/final/test-bed/MaxPressure',
-    'gui': True,
+    'log_folder': './log/final/test-bed/FixedTime',
+    'gui': False,
 }
 
 sim = TSLib(config)
