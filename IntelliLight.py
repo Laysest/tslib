@@ -73,13 +73,13 @@ class IntelliLight(RLAgent):
         reward += N
 
         #reward for travel time of passed vehicles
-        # total_travel_time = 0 
-        # for veh_id_ in vehs_id_passed:
-        #     if (veh_id_ in GloVars.vehicles.keys()) and ((traci.simulation.getTime() - 1) in GloVars.vehicles[veh_id_].log.keys()):
-        #         veh_route_ = GloVars.vehicles[veh_id_].log[traci.simulation.getTime() - 1]['route']
-        #         if len(veh_route_) >= 3:
-        #             total_travel_time += veh_route_[-3]['last_time_step'] - veh_route_[-3]['first_time_step']
-        # reward += total_travel_time/60
+        total_travel_time = 0 
+        for veh_id_ in vehs_id_passed:
+            if (veh_id_ in GloVars.vehicles.keys()):
+                veh_route_ = GloVars.vehicles[veh_id_].status['route']
+                if len(veh_route_) >= 3:
+                    total_travel_time += veh_route_[-3]['last_time_step'] - veh_route_[-3]['first_time_step']
+        reward += total_travel_time/60
 
         return reward
 
