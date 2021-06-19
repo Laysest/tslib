@@ -6,7 +6,6 @@ import sys
 import os
 import tensorflow as tf
 from SOTL import SOTL
-from SimpleRL import SimpleRL
 from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
