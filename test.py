@@ -84,16 +84,16 @@ from tslib import TSLib
 # }
 
 config = {
-    'net': 'isolated-intersection/testbed-full/road.net.xml',
+    'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
     'veh_type': 'type.xml',
-    'route': 'isolated-intersection/testbed-full/flow.route.xml',
+    'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
     'end': 3600*24,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/testbed-full/MaxPressure'},
+        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-full/MaxPressure'},
     ],
-    'log_folder': './log/train/testbed-full/MaxPressure',
+    'log_folder': './log/dev/testbed-full/MaxPressure',
     'gui': False,
 }
 
 sim = TSLib(config)
-sim.train()
+sim.run()

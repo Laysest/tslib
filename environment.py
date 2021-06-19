@@ -32,7 +32,8 @@ class Environment():
         self.controllers = []
         self.config = config
         self.traffic_lights = None
-        self.log = {} 
+        self.log = {}
+        self.episode = -1
 
     def reset(self):
         self.vehicles = {}
@@ -50,6 +51,7 @@ class Environment():
         for veh_id_ in self.vehicles:
             if not self.vehicles[veh_id_].isFinished():
                 self.vehicles[veh_id_].update()
+                self.vehicles[veh_id_].logStep(self.episode)
         GloVars.vehicles = self.vehicles
     
     def getEdgesOfNode(self, tf_id):
@@ -77,6 +79,7 @@ class Environment():
         pretrain_ = True
         ### Pre-train: ------------------------
         if pretrain_:
+            self.episode = -1
             traci.start(sumo_cmd)
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
             while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < self.config['end']:
@@ -89,6 +92,7 @@ class Environment():
         #### ------------------------------------------
 
         for e in range(50):
+            self.episode = e
             print("Episode: %d" % e)
             traci.start(sumo_cmd)
 
@@ -127,6 +131,7 @@ class Environment():
             self.traffic_lights[i].saveModel(e)
 
     def run(self):
+        self.episode = -100
         if self.config["gui"]:
             sumo_cmd = ["/usr/bin/sumo-gui"]
         else:

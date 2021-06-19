@@ -134,3 +134,4 @@ model/*
 !/model/final/
 tensorboard/
 *.pkl
+log/dev/
