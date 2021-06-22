@@ -73,7 +73,7 @@ class IntelliLight(RLAgent):
         reward += N
 
         #reward for travel time of passed vehicles
-        total_travel_time = 0 
+        total_travel_time = 0
         for veh_id_ in vehs_id_passed:
             if (veh_id_ in GloVars.vehicles.keys()):
                 veh_route_ = GloVars.vehicles[veh_id_].status['route']

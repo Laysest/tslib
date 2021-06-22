@@ -87,12 +87,12 @@ config = {
     'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
     'veh_type': 'type.xml',
     'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
-    'end': 3600*24,
+    'end': 3600,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-full/MaxPressure'},
+        {'node_id': 'gneJ1', 'method': 'VFB', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/VFB'},
     ],
-    'log_folder': './log/dev/testbed-full/MaxPressure',
-    'gui': False,
+    'log_folder': './log/dev/testbed-a-hour/VFB',
+    'gui': True,
 }
 
 sim = TSLib(config)
