@@ -86,7 +86,7 @@ class Environment():
                 self.update()
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=False, pretrain=True)
-                    self.traffic_lights[i].log_step()
+                    self.traffic_lights[i].logStep(self.episode)
                 traci.simulationStep()
             self.close()
         #### ------------------------------------------
@@ -109,7 +109,7 @@ class Environment():
                 threads = {}
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=True)
-                    self.traffic_lights[i].log_step()
+                    self.traffic_lights[i].logStep(self.episode)
                     if count % GloVars.INTERVAL == 0:
                         threads[i] = threading.Thread(target=replay_in_parallel, args=(self.traffic_lights[i],))
                         threads[i].start()
@@ -148,7 +148,7 @@ class Environment():
             self.update()
             for i in range(len(self.traffic_lights)):
                 self.traffic_lights[i].update(is_train=False)
-                self.traffic_lights[i].log_step()
+                self.traffic_lights[i].logStep(self.episode)
             traci.simulationStep()
         self.close()
 
@@ -174,16 +174,15 @@ class Environment():
         metrics = ['avg_speed_per_step', 'CO2_emission', 'CO_emission', 'fuel_consumption', 'waiting_time',\
                     'distance', 'travel_time', 'avg_speed']
         self.log[ep]['veh_logs'] = veh_logs
-        self.log[ep]['tf_logs'] = [tf.log for tf in self.traffic_lights]
 
         print("\n")
         for metric in metrics:
             val = sum(d[metric] for d in veh_logs) / len(veh_logs)
             print("{0:20}:{1}".format(metric, val))
             self.log[ep][metric] = val
-        
-        if not os.path.exists(self.config['log_folder']):
-            os.makedirs(self.config['log_folder'])
-        pickle.dump(self.log, open('%s/log.pkl' % self.config['log_folder'], 'wb'))
+                    
+        # if not os.path.exists(self.config['log_folder']):
+        #     os.makedirs(self.config['log_folder'])
+        # pickle.dump(self.log, open('%s/log.pkl' % self.config['log_folder'], 'wb'))
     
     

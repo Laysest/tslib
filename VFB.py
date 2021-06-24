@@ -10,18 +10,15 @@ from RLAgent import RLAgent
 from glo_vars import GloVars
 
 np.set_printoptions(threshold=np.inf)
-traci = GloVars.traci
-# we only support 3-way and 4-way intersections
-MAX_NUM_WAY = 4
+    
 
 class VFB(RLAgent):
-    def __init__(self, config=None, tf_id=None, road_structure=None):
-        self.map_size, self.center_length_WE, self.center_length_NS = self.getMapSize(road_structure)
+    def __init__(self, config=None, road_structure=None):
+        self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
         RLAgent.__init__(self, config['cycle_control'])
-        self.config = config
-        self.tf_id = tf_id
 
-    def getMapSize(self, road_structure):
+    @staticmethod
+    def getMapSize(road_structure):
         center_length_NS = 1
         if 'east_road_in' in road_structure:
             center_length_NS = len(road_structure['east_road_in'])
@@ -37,20 +34,21 @@ class VFB(RLAgent):
         map_size = (2*(GloVars.ARRAY_LENGTH + center_length_WE), 2*(GloVars.ARRAY_LENGTH + center_length_NS))
         return map_size, center_length_WE, center_length_NS
 
-    def computeReward(self, state, historical_data):
+    @staticmethod
+    def computeReward(state, historical_data):
+        if historical_data == None:
+            return 0
         reward = 0
 
         # get list vehicles
-        vehs = []
-        for lane in self.lanes_unique:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
+        vehs = state['vehicles']
         
         # total delay
         total_delay = 0
         for veh in vehs:
-            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
+            total_delay += 1 - veh['speed'] / veh['max_speed']
         
-        reward = historical_data['VFB']['last_total_delay'] - total_delay
+        reward = historical_data['last_total_delay'] - total_delay
 
         return reward
 
@@ -74,70 +72,70 @@ class VFB(RLAgent):
             from general state returned from traffic light
             process to return position_map
         """
-        map_ = self.buildMap(state)
+        map_ = VFB.buildMap(state, self.map_size, self.center_length_WE, self.center_length_NS)
         return np.reshape(map_, (self.map_size[0], self.map_size[1], 1)) # reshape to (SPACE, 1)
 
-    def buildMap(self, state):
+    @staticmethod
+    def buildMap(state, map_size, center_length_WE, center_length_NS):
         """
             this function to return a 2D matrix indicating information on vehicles' positions
         """
         road_structure = state['road_structure']
         vehicles = state['vehicles']
-        position_mapped = np.zeros(self.map_size)
-        center_length_WE, center_length_NS = self.center_length_WE, self.center_length_NS
+        position_mapped = np.zeros(map_size)
 
         # handle the North side
         if 'north_road_in' in road_structure:
             for i, lane in enumerate(road_structure['north_road_in']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=True)
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_WE + i - len(road_structure['north_road_in'])] = arr_[j]
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + i - len(road_structure['north_road_in'])] = arr_[j]
         if 'north_road_out' in road_structure:
             for i, lane in enumerate(road_structure['north_road_out']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['north_road_out']) - i - 1] = arr_[j]        
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['north_road_out']) - i - 1] = arr_[j]        
 
         # handle the East side
         if 'east_road_in' in road_structure:
             for i, lane in enumerate(road_structure['east_road_in']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['east_road_in']) + i][GloVars.ARRAY_LENGTH + center_length_WE + j + 1] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['east_road_in']) + i][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
         if 'east_road_out' in road_structure:
             for i, lane in enumerate(road_structure['east_road_out']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=False)
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['east_road_out']) - i - 1][GloVars.ARRAY_LENGTH + center_length_WE + j + 1] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['east_road_out']) - i - 1][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
 
         # handle the South side
         if 'south_road_in' in road_structure:
             for i, lane in enumerate(road_structure['south_road_in']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_NS + 1][GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['south_road_in']) - i - 1] = arr_[j]
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['south_road_in']) - i - 1] = arr_[j]
         if 'south_road_out' in road_structure:
             for i, lane in enumerate(road_structure['south_road_out']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=False)
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_NS + 1][GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['south_road_out']) + i] = arr_[j]
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['south_road_out']) + i] = arr_[j]
 
         # handle the West side
         if 'west_road_in' in road_structure:
             for i, lane in enumerate(road_structure['west_road_in']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=True)
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['west_road_in']) - i - 1][j] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['west_road_in']) - i - 1][j] = arr_[j]
         if 'west_road_out' in road_structure:
             for i, lane in enumerate(road_structure['west_road_out']):
-                arr_ = self.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['west_road_out']) + i][j] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['west_road_out']) + i][j] = arr_[j]
 
-        print(position_mapped)
         return position_mapped
     
-    def buildArray(self, lane=None, vehicles=None, incoming=None):
+    @staticmethod
+    def buildArray(lane=None, vehicles=None, incoming=None):
         arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
         vehs = [veh for veh in vehicles if veh['lane'] == lane['id']]
@@ -158,10 +156,11 @@ class VFB(RLAgent):
 
         return arr
 
-    def logHistoricalData(self, state, action):
+    @staticmethod
+    def logHistoricalData(state, action):
         historical_data = {}
         total_delay = 0
         for veh in state['vehicles']:
             total_delay += 1 - veh['speed'] / veh['max_speed']
-        historical_data['VFB']['last_total_delay'] = total_delay
+        historical_data['last_total_delay'] = total_delay
         return historical_data

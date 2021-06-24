@@ -1,12 +1,14 @@
 """
     This file declare TrafficLight class
 """
+import enum
 import random
 import sys
 import os
 from numpy.core.fromnumeric import sort
 import sumolib
 import tensorflow as tf
+import pandas as pd
 from SOTL import SOTL
 from CDRL import CDRL
 from VFB import VFB
@@ -24,6 +26,11 @@ traci = GloVars.traci
 # TODO: change it to more general
 MAX_NUM_PHASE = 4
 
+class LightState:
+    Green = 0
+    Yellow = 1
+    Red = 2   
+
 class TrafficLight:
     # pylint: disable=line-too-long invalid-name too-many-instance-attributes
     '''
@@ -35,12 +42,11 @@ class TrafficLight:
         self.yellow_duration = config['yellow_duration']
         self.cycle_control = config['cycle_control']
         self.folder = config['folder']
-        self.lanes = traci.trafficlight.getControlledLanes(self.id)
         # self.lanes = []
         # Create controller based on the algorithm configed
 
         # new implement
-        self.road_structure = self.get_road_structure()
+        self.road_structure = self.getRoadStructure()
         self.lanes_id = []
         for road in self.road_structure.keys():
             self.lanes_id.extend([lane['id'] for lane in self.road_structure[road]])
@@ -49,37 +55,55 @@ class TrafficLight:
         if self.control_algorithm == 'SOTL':
             self.controller = SOTL(config=config, tf_id=self.id)
         elif self.control_algorithm == 'CDRL':
-            self.controller = CDRL(config=config, tf_id=self.id)
+            self.controller = CDRL(config=config, road_structure=self.road_structure)
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, tf_id=self.id, road_structure=self.road_structure)
+            self.controller = VFB(config=config, road_structure=self.road_structure)
         elif self.control_algorithm == 'IntelliLight':
-            self.controller = IntelliLight(config=config, tf_id=self.id)
+            self.controller = IntelliLight(config=config, road_structure=self.road_structure)
         elif self.control_algorithm == 'TLCC':
-            self.controller = TLCC(config=config, tf_id=self.id)
+            self.controller = TLCC(config=config, road_structure=self.road_structure)
         elif self.control_algorithm == 'FixedTime':
             self.controller = FixedTime(config=config, tf_id=self.id)
         elif self.control_algorithm == 'MaxPressure':
             self.controller = MaxPressure(config=config, tf_id=self.id)
         else:
-            print("Must implement method named %s" % self.control_algorithm)
+            print("<<< Must implement %s >>>" % self.control_algorithm)
+            sys.exit(0)
 
         self.writer = tf.summary.create_file_writer('./tensorboard/hz_4x4/%s-%s' % (self.id, self.control_algorithm))
-        self.current_phase = 0
         self.last_action, self.last_processed_state, self.last_state = None, None, None
-        self.last_action_is_change = 0
-        self.last_total_delay = 0
         self.lanes = traci.trafficlight.getControlledLanes(self.id)
         self.lanes_unique = list(dict.fromkeys(self.lanes))
         self.reset()
 
          # this for  computing reward
         self.historical_data = None
-        self.log = {
-            'lanes': self.lanes_unique
-        }
+        
+    def updatePhase(self):
+        phase = {}
+        lanes = traci.trafficlight.getControlledLanes(self.id)
+        all_logic_ = traci.trafficlight.getAllProgramLogics(self.id)[0]
+        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        for idx, lane in enumerate(lanes):
+            if lane not in phase.keys():
+                phase[lane] = 0
+            if current_logic[idx] in ['g', 'G']:
+                phase[lane] += 1
+            else:
+                phase[lane] -= 1
 
+        for lane in phase.keys():
+            if phase[lane] >= 0:
+                phase[lane] = LightState.Green
+            else:
+                phase[lane] = LightState.Red
 
-    def get_road_structure(self):
+        for road in self.road_structure.keys():
+            if 'in' in road:
+                for idx, lane in enumerate(self.road_structure[road]):
+                    self.road_structure[road][idx]['light_state'] = phase[lane['id']]
+
+    def getRoadStructure(self):
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.id)
         incoming_nodes = center_node.getNeighboringNodes(incomingNodes=True)
         sorted_nodes = []
@@ -285,44 +309,50 @@ class TrafficLight:
         # print(center_node.getCoord())
         # for node in sorted_nodes:
         #     print(node.getID(), ': ', node.getCoord())
+
+        def getLanesArray(edge):
+            return [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed(), 'light_state': None} for lane in edge.getLanes()]
+
         road_structure = {}
         if sorted_nodes[0] != None:
             edges = sorted_nodes[0].getOutgoing()
             for edge in edges:
                 if edge.getToNode() == center_node:
-                    road_structure['west_road_in'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['west_road_in'] = getLanesArray(edge)
                 if edge.getFromNode() == center_node:
-                    road_structure['west_road_out'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['west_road_out'] = getLanesArray(edge)
 
         if sorted_nodes[1] != None:
             edges = sorted_nodes[1].getOutgoing()
             for edge in edges:
                 if edge.getToNode() == center_node:
-                    road_structure['north_road_in'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['north_road_in'] = getLanesArray(edge)
                 if edge.getFromNode() == center_node:
-                    road_structure['north_road_out'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['north_road_out'] = getLanesArray(edge)
 
         if sorted_nodes[2] != None:
             edges = sorted_nodes[2].getOutgoing()
             for edge in edges:
                 if edge.getToNode() == center_node:
-                    road_structure['east_road_in'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['east_road_in'] = getLanesArray(edge)
                 if edge.getFromNode() == center_node:
-                    road_structure['east_road_out'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['east_road_out'] = getLanesArray(edge)
 
         if sorted_nodes[3] != None:
             edges = sorted_nodes[3].getOutgoing()
             for edge in edges:
                 if edge.getToNode() == center_node:
-                    road_structure['south_road_in'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['south_road_in'] = getLanesArray(edge)
                 if edge.getFromNode() == center_node:
-                    road_structure['south_road_out'] = [{'id': lane.getID(), 'length': lane.getLength()} for lane in edge.getLanes()]
+                    road_structure['south_road_out'] = getLanesArray(edge)
 
         return road_structure
 
-    def log_step(self):
-        now = traci.simulation.getTime()
-        self.log[now] = {
+    def logStep(self, episode):
+        log_ = {
+            'ep': episode,
+            'step': traci.simulation.getTime(),
+            'id': self.id,
             'CO2_emission': [traci.lane.getCO2Emission(lane) for lane in self.lanes_unique],
             'CO_emission': [traci.lane.getCOEmission(lane) for lane in self.lanes_unique],
             'fuel_consumption': [traci.lane.getFuelConsumption(lane) for lane in self.lanes_unique],
@@ -333,7 +363,17 @@ class TrafficLight:
             'waiting_time': [traci.lane.getWaitingTime(lane) for lane in self.lanes_unique],
             'queue_length': self.getQueueLength()
         }
-    
+        df = pd.DataFrame([log_])
+        
+        if not os.path.exists(GloVars.config['log_folder']):
+            os.makedirs(GloVars.config['log_folder'])
+        log_folder = '%s/log_per_intersection.csv' % GloVars.config['log_folder']
+        if not os.path.isfile(log_folder):
+            df.to_csv(log_folder, header='column_names', index=False)
+        else: # else it exists so append without writing the header
+            df.to_csv(log_folder, mode='a', header=False, index=False)
+
+
     def getQueueLength(self):
         queue_length = [];
         for lane in self.lanes_unique:
@@ -352,7 +392,6 @@ class TrafficLight:
             Restart the logic at phase 0
         """
         traci.trafficlight.setPhase(self.id, 0)
-        self.current_phase = 0
         traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
     def reset(self):
@@ -360,47 +399,25 @@ class TrafficLight:
             self.setLogic()
         self.control_actions = []
         self.last_action, self.last_processed_state, self.last_state = None, None, None
-        self.last_action_is_change = 0
-        self.last_total_delay = 0
-        self.last_list_veh = []
-        self.historical_data = {
-            'CDRL': {
-                'last_action_is_change': 0
-            },
-            'VFB': {
-                'last_total_delay': 0
-            },
-            'IntelliLight':{
-                'last_action_is_change': 0,
-                'last_vehs_id': []
-            }
-        }
-        self.log = {
-            'lanes': self.lanes_unique
-        }
+        self.historical_data = None
 
     def getState(self):
         """
             return the current state of the intersection:
             state = {
                 'road_structure': {
-                    'west_road_in': [{'id': 'W_lane_0', 'length': 100, 'width': 4}],
-                    'east_road_in': ['E_lane_0', 'E_lane_1'],
+                    'west_road_in': [{'id': 'W_lane_0', 'length': 100, 'width': 4, 'max_allowed_speed': 50}],
                     ...
                 },
-                'in_vehicles':[
+                'vehicles':[
                     {
                         'id': 'veh_0',
                         'lane': 'W_lane_0',
                         'distance_from_lane_start': 20,
                         'speed': 10,
                         'length': 10,
+                        'waiting_time': 0.6,
                     },
-                ],
-                'out_vehicles':[
-                    {
-                        ...
-                    }
                 ]
                 'current_phase_index': 0
             }
@@ -414,26 +431,17 @@ class TrafficLight:
                     'distance_from_lane_start': traci.vehicle.getLanePosition(veh),
                     'speed': traci.vehicle.getSpeed(veh),
                     'max_speed': traci.vehicle.getMaxSpeed(veh),
-                    'length': traci.vehicle.getLength(veh)
+                    'length': traci.vehicle.getLength(veh),
+                    'waiting_time': traci.vehicle.getWaitingTime(veh)
                 })
         current_phase_index = traci.trafficlight.getPhase(self.id)
+        self.updatePhase()
 
         return {
             'road_structure': self.road_structure,
             'vehicles': vehs,
             'current_phase_index': current_phase_index
         }
-
-        # all_logic_ = traci.trafficlight.getAllProgramLogics(self.id)[0]
-        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        # current_phase_index = traci.trafficlight.getPhase(self.id)
-        # lanes_unique_ = list(dict.fromkeys(self.lanes))
-        # vehs_id = []
-        # for lane in lanes_unique_:
-        #     vehs_id.extend(traci.lane.getLastStepVehicleIDs(lane))
-
-        # return {'tf_id': self.id, 'lanes': self.lanes, 'current_logic': current_logic, 'current_phase_index': current_phase_index,
-        #         'last_action_is_change': self.last_action_is_change, 'last_total_delay': self.last_total_delay, 'vehs_id': vehs_id}
 
     def processControlStack(self, control_stack):
         if len(control_stack) <= 0:
@@ -494,33 +502,6 @@ class TrafficLight:
             else:
                 print("error in process control stack")
                 sys.exit()              
-        # if len(self.control_actions) > 0:
-        #     if self.control_actions[0]['executed'] is False:
-        #         self.control_actions[0]['executed'] = True
-        #         if self.control_actions[0]['type'] == ActionType.CHANGE_PHASE or self.control_actions[0]['type'] == ActionType.YELLOW_PHASE:
-        #             self.changeToNextPhase()
-        #     self.control_actions[0]['length'] -= 1
-        #     if self.control_actions[0]['length'] <= 0:
-        #         self.control_actions.pop(0)
-
-    def logHistoricalData(self, last_action):
-        if last_action == ActionType.CHANGE_PHASE:
-            self.historical_data['CDRL']['last_action_is_change'] = 1
-            self.historical_data['IntelliLight']['last_action_is_change'] = 1
-        else:
-            self.historical_data['CDRL']['last_action_is_change'] = 0
-            self.historical_data['IntelliLight']['last_action_is_change'] = 0
-
-        vehs = []
-        for lane in self.lanes_unique:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-        self.historical_data['IntelliLight']['last_vehs_id'] = vehs
-
-        # total delay
-        total_delay = 0
-        for veh in vehs:
-            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
-        self.historical_data['VFB']['last_total_delay'] = total_delay
 
     def saveModel(self, ep=0):
         if not os.path.exists(self.folder):
@@ -577,7 +558,6 @@ class TrafficLight:
                 if (self.last_processed_state is not None) and (self.last_action is not None):
                     # compute reward
                     reward = self.controller.computeReward(cur_state, self.historical_data)
-                    # self.logHistoricalData(control_stack[0]['type'])
                     self.historical_data = self.controller.logHistoricalData(cur_state, control_stack[0]['type'])
                     self.controller.exp_memory.add([self.last_processed_state, self.last_action, reward, self.controller.processState(cur_state)])
                     # plot reward
