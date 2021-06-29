@@ -76,7 +76,6 @@ class CDRL(RLAgent):
 
         return model
 
-    
     def processState(self, state=None):
         """
             from general state returned from traffic light

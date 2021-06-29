@@ -1,3 +1,4 @@
+import enum
 import sys
 import math
 import sumolib
@@ -23,23 +24,26 @@ ACTION_SPACE = GloVars.ACTION_SPACE * 2 + 1
 NUM_TRAIN_STEP_TO_REPLACE = 2
 
 class TLCC(RLAgent):
-    def __init__(self, config=None, road_structure=None):
+    def __init__(self, config, road_structure, number_of_phases):
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
-        RLAgent.__init__(self, config['cycle_control'])
+        input_space = (self.map_size[0], self.map_size[1], 2)
+        output_space = number_of_phases + 1
+        RLAgent.__init__(self, config['cycle_control'], input_space, output_space)
         self.q_net = self.model
-        self.target_net = self.buildModel()
-        self.phase_length = [self.cycle_control for _ in range(GloVars.ACTION_SPACE)]
+        self.target_net = self.buildModel(input_space, output_space)
+        self.phase_length = [self.cycle_control for _ in range(int(number_of_phases/2))]
         self.train_step = 0
 
     @staticmethod
     def computeReward(state, historical_data):
         return VFB.computeReward(state, historical_data)
 
-    def buildModel(self):
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
-        map_ = Input(shape=(self.map_size[0], self.map_size[1], 2))
+        map_ = Input(shape=(input_space))
         conv1_ = Conv2D(filters=32, kernel_size=(2, 2), strides=(2, 2), activation="relu")(map_)
         conv2_ = Conv2D(filters=16, kernel_size=(2, 2), strides=(2, 2), activation="relu")(conv1_)
         map_feature_ = Flatten()(conv2_)
@@ -47,7 +51,7 @@ class TLCC(RLAgent):
         hidden_2_v_ = Dense(64, activation='relu')(hidden_1_)
         hidden_2_a_ = Dense(64, activation='relu')(hidden_1_)
         v_ = Dense(1, activation='linear')(hidden_2_v_)
-        a_ = Dense(ACTION_SPACE, activation='linear')(hidden_2_a_)
+        a_ = Dense(output_space, activation='linear')(hidden_2_a_)
         Q_out_ = v_ + (a_ - tf.math.reduce_mean(a_, axis=1, keepdims=True))
         model = tf.keras.Model(inputs=map_, outputs=Q_out_)
         model.compile(loss='mean_squared_error', optimizer='adam')
@@ -173,7 +177,7 @@ class TLCC(RLAgent):
         self.target_net.set_weights(self.q_net.get_weights())
 
     def randomAction(self, state):
-        action = random.randint(0, ACTION_SPACE - 1)
+        action = random.randint(0, self.output_space - 1)
         if action == 0:
             self.phase_length[0] += self.cycle_control
         elif action == 1:
@@ -192,18 +196,21 @@ class TLCC(RLAgent):
         out_ = self.model.predict(np.array([state_]))[0]
         action = np.argmax(out_)
 
-        if action == 0:
-            self.phase_length[0] += self.cycle_control
-        elif action == 1:
-            self.phase_length[1] += self.cycle_control
-        elif action == 2:
-            self.phase_length[1] -= self.cycle_control
-        elif action == 3:
-            self.phase_length[0] -= self.cycle_control
-        self.limitPhaseLength()
+        if action != self.output_space - 1:
+            tmp = int(action/2)
+            if action % 2 == 0:
+                self.phase_length[tmp] += self.cycle_control
+                self.phase_length[tmp] = self.phase_length[tmp] if self.phase_length[tmp] < 60 else 60
+            else:
+                self.phase_length[tmp] -= self.cycle_control
+                self.phase_length[tmp] = self.phase_length[tmp] if self.phase_length[tmp] > 5 else 5
 
-        return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[0], 'executed': False},
-                    {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[1], 'executed': False}]
+        action_stack = []
+        for i, length in enumerate(self.phase_length):
+            if length > 0:
+                action_stack.append({'type': ActionType.CHANGE_TO_PHASE, 'phase_index': i*2, 'length': length, 'executed': False})
+
+        return action, action_stack        
 
     def limitPhaseLength(self):
         # Limit phase_length

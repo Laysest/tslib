@@ -19,33 +19,6 @@ class MaxPressure(Controller):
         self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
         self.lanes_unique = list(dict.fromkeys(self.lanes))
 
-        # nodes, center = self.getNodesSortedByDirection()
-        # self.outgoing_lanes = []
-        # for edge in center.getOutgoing():
-        #     for lane in edge.getLanes():
-        #         self.outgoing_lanes.append(lane.getID())
-        
-    def getNodesSortedByDirection(self):
-        """
-            This function will return a list of nodes sorted by direction
-                N
-            W       E
-                S
-            [N, E, S, W] for 4-way intersection
-
-                N
-            W       E
-            [N, E, None, W]
-        """ 
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
-        neightbor_nodes = center_node.getNeighboringNodes()
-        # isolated...
-        # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
-        # 4x1 network
-        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
-        
-        # center_node_coord = center_node.getCoord()
-        return neightbor_nodes, center_node
 
     def processState(self, state):
         """

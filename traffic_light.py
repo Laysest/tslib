@@ -43,7 +43,7 @@ class TrafficLight:
         self.cycle_control = config['cycle_control']
         self.folder = config['folder']
         self.number_of_phases = len(traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases())
-
+        self.phase_description = self.getPhaseDescription()
         if self.number_of_phases % 2 != 0:
             print("<<< To ensure safety, must have a yellow phase after each changing phase >>>")
             sys.exit(0)
@@ -57,7 +57,7 @@ class TrafficLight:
             self.lanes_id.extend([lane['id'] for lane in self.road_structure[road]])
 
         if self.control_algorithm == 'SOTL':
-            self.controller = SOTL(config=config, tf_id=self.id)
+            self.controller = SOTL(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'CDRL':
             self.controller = CDRL(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'VFB':
@@ -65,7 +65,7 @@ class TrafficLight:
         elif self.control_algorithm == 'IntelliLight':
             self.controller = IntelliLight(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'TLCC':
-            self.controller = TLCC(config=config, road_structure=self.road_structure)
+            self.controller = TLCC(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'FixedTime':
             self.controller = FixedTime(config=config, tf_id=self.id)
         elif self.control_algorithm == 'MaxPressure':
@@ -89,31 +89,6 @@ class TrafficLight:
         """
         traci.trafficlight.setPhase(self.id, 0)
         traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
-
-
-    def updatePhase(self):
-        phase = {}
-        lanes = traci.trafficlight.getControlledLanes(self.id)
-        all_logic_ = traci.trafficlight.getAllProgramLogics(self.id)[0]
-        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        for idx, lane in enumerate(lanes):
-            if lane not in phase.keys():
-                phase[lane] = 0
-            if current_logic[idx] in ['g', 'G']:
-                phase[lane] += 1
-            else:
-                phase[lane] -= 1
-
-        for lane in phase.keys():
-            if phase[lane] >= 0:
-                phase[lane] = LightState.Green
-            else:
-                phase[lane] = LightState.Red
-
-        for road in self.road_structure:
-            if 'in' in road:
-                for idx, lane in enumerate(self.road_structure[road]):
-                    self.road_structure[road][idx]['light_state'] = phase[lane['id']]
         
     def getRoadStructure(self):
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.id)
@@ -360,6 +335,28 @@ class TrafficLight:
 
         return road_structure
 
+    def getPhaseDescription(self):
+        phases = traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases()
+        links = traci.trafficlight.getControlledLinks(self.id)
+        print(links)
+        def map_phase_state(state):
+            if state in ['r', 'R']:
+                return LightState.Red
+            if state in ['g', 'G']:
+                return LightState.Green
+            return LightState.Yellow
+        des = []
+        for idx, phase in enumerate(phases):
+            tmp = []
+            for link in links:
+                tmp.append({
+                    'from': link[0][0],
+                    'to': link[0][1],
+                    'light_state': map_phase_state(phase.state[idx])
+                })
+            des.append(tmp)
+        return des
+
     def logStep(self, episode):
         log_ = {
             'ep': episode,
@@ -396,7 +393,6 @@ class TrafficLight:
             queue_length.append(q)
         return queue_length
         
-
     def reset(self):
         if self.control_algorithm != 'FixedTime':
             self.setLogic()
@@ -438,10 +434,13 @@ class TrafficLight:
                     'waiting_time': traci.vehicle.getWaitingTime(veh)
                 })
         current_phase_index = traci.trafficlight.getPhase(self.id)
-        self.updatePhase()
+                     
+        # print(traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases())
+        # print()
 
         return {
             'road_structure': self.road_structure,
+            'phase_description': self.phase_description,
             'vehicles': vehs,
             'current_phase_index': current_phase_index
         }
@@ -451,15 +450,8 @@ class TrafficLight:
             return
         for action in control_stack:
             if action['type'] == ActionType.CHANGE_TO_NEXT_PHASE:
-                if action['length'] > 0:
-                    self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': action['length'], 'executed': False}])
-                else:
-                    # TODO if action['length] == 0:
-                    self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length':self.yellow_duration, 'executed': False}, # change to yellow phase
-                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length':  0, 'executed': False}, # change to next phase
-                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False},  # change to yellow phase
-                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
+                self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
+                                            {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': action['length'], 'executed': False}])
             elif action['type'] == ActionType.CHANGE_TO_PHASE:
                 self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
                                             {'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action['phase_index'], 'length': action['length'], 'executed': False}])
@@ -510,7 +502,7 @@ class TrafficLight:
                 continue
             else:
                 print("error in process control stack")
-                sys.exit()              
+                sys.exit()
 
     def saveModel(self, ep=0):
         if not os.path.exists(self.folder):

@@ -18,7 +18,7 @@ class GloVars:
     BATCH_SIZE = 64
     GAMMA = 0.95
     EPOCHS = 20
-    SAMPLE_SIZE = 256
+    SAMPLE_SIZE = 8
     INTERVAL = 300
     MEMORY_SIZE = 2048
     step = 0

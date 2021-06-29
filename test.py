@@ -87,11 +87,11 @@ config = {
     'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
     'veh_type': 'type.xml',
     'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
-    'end': 3600,
+    'end': 600,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/CDRL'},
+        {'node_id': 'gneJ1', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/SOTL'},
     ],
-    'log_folder': './log/dev/testbed-a-hour/CDRL',
+    'log_folder': './log/dev/testbed-a-hour/SOTL',
     'gui': False,
 }
 
@@ -108,6 +108,5 @@ config = {
 #     'gui': False,
 # }
 
-
 sim = TSLib(config)
-sim.train()
+sim.run()

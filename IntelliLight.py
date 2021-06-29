@@ -117,15 +117,19 @@ class IntelliLight(RLAgent):
             output_ = Dense(output_space, activation='linear')(separated_hidden_)
             output.append(output_)
 
-        # separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_)
-        # output_left_ = Dense(output_space, activation='linear')(separated_hidden_1_left_)
-
-        # separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_)
-        # output_right_ = Dense(output_space, activation='linear')(separated_hidden_1_right_)
-        # output_as_tf = tf.Variable(output_)
-        out = output[phase_]
-        # for i in range(len(output_space)):
-        # out = tf.where(phase_ == 0, output_[0], tf.where())
+        if output_space == 2:
+            out = tf.where(phase_ == 0, output[0], output[1])
+        elif output_space == 3:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], output[2]))
+        elif output_space == 4:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], output[3])))
+        elif output_space == 5:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], tf.where(phase_ == 3, output[3], output[4]))))
+        elif output_space == 6:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], tf.where(phase_ == 3, output[3], tf.where(phase_ == 4, output[4], output[5])))))
+        else:
+            print("<<< IntelliLight support only maximum 6 phases >>>")
+            sys.exit(0)
 
         model = tf.keras.Model(inputs=[map_, lane_features_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
@@ -146,6 +150,7 @@ class IntelliLight(RLAgent):
         return state_
 
     def getLaneFeatures(self, state):
+        from traffic_light import LightState
         vehs = state['vehicles']
         # all_logic_ = traci.trafficlight.getAllProgramLogics(self.tf_id)[0]
         # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
@@ -169,12 +174,21 @@ class IntelliLight(RLAgent):
             lane_features_.append(waiting_time)
 
         # phase vector
+        light_state = {}
+        phase_detail = state['phase_description'][state['current_phase_index']]
+        for item in phase_detail:
+            if item['from'] not in light_state:
+                light_state[item['from']] = 0
+            if item['light_state'] == LightState.Green:
+                light_state[item['from']] += 1
+            else:
+                light_state[item['from']] -= 1
+
         for lane in self.incoming_lanes:
-            for k, road in state['road_structure'].items():
-                for sublane in road:
-                    if sublane['id'] == lane['id']:
-                        lane_features_.append(sublane['light_state'])
-                        break
+            if light_state[lane['id']] > 0:
+                lane_features_.append(LightState.Green)
+            else:
+                lane_features_.append(LightState.Red)
 
         # number of vehicles
         for lane in self.incoming_lanes:
