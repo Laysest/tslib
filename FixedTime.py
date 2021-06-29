@@ -16,3 +16,6 @@ class FixedTime(Controller):
 
     def makeAction(self, state):
         return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': True}]
+
+    def isAdaptiveControl(self):
+        return False

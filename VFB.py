@@ -15,7 +15,7 @@ np.set_printoptions(threshold=np.inf)
 class VFB(RLAgent):
     def __init__(self, config, road_structure, number_of_phases):
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
-        RLAgent.__init__(self, config['cycle_control'], (self.map_size[0], self.map_size[1], 1), number_of_phases/2)
+        super().__init__(self, config['cycle_control'], (self.map_size[0], self.map_size[1], 1), number_of_phases/2)
 
     @staticmethod
     def getMapSize(road_structure):

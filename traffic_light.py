@@ -80,7 +80,17 @@ class TrafficLight:
 
          # this for  computing reward
         self.historical_data = None
-        
+
+    def setLogic(self):
+        """
+            ### To do ###
+            Set logic program for the traffic light
+            Restart the logic at phase 0
+        """
+        traci.trafficlight.setPhase(self.id, 0)
+        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+
+
     def updatePhase(self):
         phase = {}
         lanes = traci.trafficlight.getControlledLanes(self.id)
@@ -375,7 +385,6 @@ class TrafficLight:
         else: # else it exists so append without writing the header
             df.to_csv(log_folder, mode='a', header=False, index=False)
 
-
     def getQueueLength(self):
         queue_length = [];
         for lane in self.lanes_id:
@@ -387,14 +396,6 @@ class TrafficLight:
             queue_length.append(q)
         return queue_length
         
-    def setLogic(self):
-        """
-            ### To do ###
-            Set logic program for the traffic light
-            Restart the logic at phase 0
-        """
-        traci.trafficlight.setPhase(self.id, 0)
-        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
     def reset(self):
         if self.control_algorithm != 'FixedTime':
@@ -461,7 +462,7 @@ class TrafficLight:
                                                 {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
             elif action['type'] == ActionType.CHANGE_TO_PHASE:
                 self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                                            {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'phase_index': action['phase_index']*2, 'length': action['length'], 'executed': False}])
+                                            {'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action['phase_index']*2, 'length': action['length'], 'executed': False}])
             elif action['type'] == ActionType.KEEP_PHASE:
                 self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
             else:
