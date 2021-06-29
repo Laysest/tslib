@@ -29,7 +29,7 @@ MAX_NUM_PHASE = 4
 class LightState:
     Green = 0
     Yellow = 1
-    Red = 2   
+    Red = 2
 
 class TrafficLight:
     # pylint: disable=line-too-long invalid-name too-many-instance-attributes
@@ -42,6 +42,11 @@ class TrafficLight:
         self.yellow_duration = config['yellow_duration']
         self.cycle_control = config['cycle_control']
         self.folder = config['folder']
+        self.number_of_phases = len(traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases())
+
+        if self.number_of_phases % 2 != 0:
+            print("<<< To ensure safety, must have a yellow phase after each changing phase >>>")
+            sys.exit(0)
         # self.lanes = []
         # Create controller based on the algorithm configed
 
@@ -51,15 +56,14 @@ class TrafficLight:
         for road in self.road_structure.keys():
             self.lanes_id.extend([lane['id'] for lane in self.road_structure[road]])
 
-
         if self.control_algorithm == 'SOTL':
             self.controller = SOTL(config=config, tf_id=self.id)
         elif self.control_algorithm == 'CDRL':
-            self.controller = CDRL(config=config, road_structure=self.road_structure)
+            self.controller = CDRL(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'VFB':
-            self.controller = VFB(config=config, road_structure=self.road_structure)
+            self.controller = VFB(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'IntelliLight':
-            self.controller = IntelliLight(config=config, road_structure=self.road_structure)
+            self.controller = IntelliLight(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'TLCC':
             self.controller = TLCC(config=config, road_structure=self.road_structure)
         elif self.control_algorithm == 'FixedTime':
@@ -70,10 +74,8 @@ class TrafficLight:
             print("<<< Must implement %s >>>" % self.control_algorithm)
             sys.exit(0)
 
-        self.writer = tf.summary.create_file_writer('./tensorboard/hz_4x4/%s-%s' % (self.id, self.control_algorithm))
+        self.writer = tf.summary.create_file_writer('%s/%s-%s' % (self.folder, self.id, self.control_algorithm))
         self.last_action, self.last_processed_state, self.last_state = None, None, None
-        self.lanes = traci.trafficlight.getControlledLanes(self.id)
-        self.lanes_unique = list(dict.fromkeys(self.lanes))
         self.reset()
 
          # this for  computing reward
@@ -98,11 +100,11 @@ class TrafficLight:
             else:
                 phase[lane] = LightState.Red
 
-        for road in self.road_structure.keys():
+        for road in self.road_structure:
             if 'in' in road:
                 for idx, lane in enumerate(self.road_structure[road]):
                     self.road_structure[road][idx]['light_state'] = phase[lane['id']]
-
+        
     def getRoadStructure(self):
         center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.id)
         incoming_nodes = center_node.getNeighboringNodes(incomingNodes=True)
@@ -353,14 +355,14 @@ class TrafficLight:
             'ep': episode,
             'step': traci.simulation.getTime(),
             'id': self.id,
-            'CO2_emission': [traci.lane.getCO2Emission(lane) for lane in self.lanes_unique],
-            'CO_emission': [traci.lane.getCOEmission(lane) for lane in self.lanes_unique],
-            'fuel_consumption': [traci.lane.getFuelConsumption(lane) for lane in self.lanes_unique],
-            'num_halting_vehs': [traci.lane.getLastStepHaltingNumber(lane) for lane in self.lanes_unique],
-            'speed': [traci.lane.getLastStepMeanSpeed(lane) for lane in self.lanes_unique],
-            'occupancy': [traci.lane.getLastStepOccupancy(lane) for lane in self.lanes_unique],
-            'num_vehs': [traci.lane.getLastStepVehicleNumber(lane) for lane in self.lanes_unique],
-            'waiting_time': [traci.lane.getWaitingTime(lane) for lane in self.lanes_unique],
+            'CO2_emission': [traci.lane.getCO2Emission(lane) for lane in self.lanes_id],
+            'CO_emission': [traci.lane.getCOEmission(lane) for lane in self.lanes_id],
+            'fuel_consumption': [traci.lane.getFuelConsumption(lane) for lane in self.lanes_id],
+            'num_halting_vehs': [traci.lane.getLastStepHaltingNumber(lane) for lane in self.lanes_id],
+            'speed': [traci.lane.getLastStepMeanSpeed(lane) for lane in self.lanes_id],
+            'occupancy': [traci.lane.getLastStepOccupancy(lane) for lane in self.lanes_id],
+            'num_vehs': [traci.lane.getLastStepVehicleNumber(lane) for lane in self.lanes_id],
+            'waiting_time': [traci.lane.getWaitingTime(lane) for lane in self.lanes_id],
             'queue_length': self.getQueueLength()
         }
         df = pd.DataFrame([log_])
@@ -376,7 +378,7 @@ class TrafficLight:
 
     def getQueueLength(self):
         queue_length = [];
-        for lane in self.lanes_unique:
+        for lane in self.lanes_id:
             q = 0
             vehs = traci.lane.getLastStepVehicleIDs(lane)
             for veh in vehs:
@@ -447,19 +449,19 @@ class TrafficLight:
         if len(control_stack) <= 0:
             return
         for action in control_stack:
-            if action['type'] == ActionType.CHANGE_PHASE:
+            if action['type'] == ActionType.CHANGE_TO_NEXT_PHASE:
                 if action['length'] > 0:
                     self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                                                {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
+                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': action['length'], 'executed': False}])
                 else:
                     # TODO if action['length] == 0:
                     self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length':self.yellow_duration, 'executed': False}, # change to yellow phase
-                                                {'type': ActionType.CHANGE_PHASE, 'length':  0, 'executed': False}, # change to next phase
-                                                {'type': ActionType.CHANGE_PHASE, 'length': 0, 'executed': False},  # change to yellow phase
-                                                {'type': ActionType.CHANGE_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
-
-                    # self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                    #                             {'type': ActionType.CHANGE_PHASE, 'length': action['length'], 'executed': False}])
+                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length':  0, 'executed': False}, # change to next phase
+                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False},  # change to yellow phase
+                                                {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
+            elif action['type'] == ActionType.CHANGE_TO_PHASE:
+                self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
+                                            {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'phase_index': action['phase_index']*2, 'length': action['length'], 'executed': False}])
             elif action['type'] == ActionType.KEEP_PHASE:
                 self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
             else:
@@ -477,6 +479,10 @@ class TrafficLight:
             traci.trafficlight.setPhase(self.id, current_phase_ + 1)
         traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
 
+    def changeToPhase(self, phase_idx):
+        traci.trafficlight.setPhase(self.id, phase_idx)
+        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+
     def doAction(self):
         """
             This function is to execute the control_actions
@@ -487,8 +493,10 @@ class TrafficLight:
         while len(self.control_actions) > 0:
             if self.control_actions[0]['executed'] is False:
                 self.control_actions[0]['executed'] = True
-                if self.control_actions[0]['type'] == ActionType.CHANGE_PHASE or self.control_actions[0]['type'] == ActionType.YELLOW_PHASE:
+                if self.control_actions[0]['type'] == ActionType.YELLOW_PHASE or self.control_actions[0]['type'] == ActionType.CHANGE_TO_NEXT_PHASE:
                     self.changeToNextPhase()
+                elif self.control_actions[0]['type'] == ActionType.CHANGE_TO_PHASE:
+                    self.changeToPhase(self.control_actions['phase_index'])
             if self.control_actions[0]['length'] > 1:
                 self.control_actions[0]['length'] -= 1
                 break

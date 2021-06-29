@@ -14,9 +14,9 @@ from VFB import VFB
 from controller import ActionType
 
 class CDRL(RLAgent):
-    def __init__(self, config=None, road_structure=None):
+    def __init__(self, config, road_structure, number_of_phases):
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
-        RLAgent.__init__(self, config['cycle_control'])
+        RLAgent.__init__(self, config['cycle_control'], (self.map_size[0], self.map_size[1], 1), number_of_phases/2)
 
     @staticmethod
     def computeReward(state, historical_data):
@@ -60,22 +60,23 @@ class CDRL(RLAgent):
 
         return reward
 
-    def buildModel(self):
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
         model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(self.map_size[0], self.map_size[1], 1)))
+        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(input_space)))
         model.add(MaxPooling2D((2, 2)))
         model.add(Flatten())
         model.add(Dense(128, activation='relu'))
         model.add(Dense(32, activation='relu'))
-        model.add(Dense(GloVars.ACTION_SPACE, activation='linear'))
+        model.add(Dense(output_space, activation='linear'))
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
 
-
+    
     def processState(self, state=None):
         """
             from general state returned from traffic light
@@ -88,13 +89,12 @@ class CDRL(RLAgent):
             position_map[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH], position_map[GloVars.ARRAY_LENGTH+self.center_length_NS][GloVars.ARRAY_LENGTH+self.center_length_WE] = 0.8, 0.8
             position_map[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH + self.center_length_WE], position_map[GloVars.ARRAY_LENGTH+self.center_length_NS][GloVars.ARRAY_LENGTH] = 0.2, 0.2
 
-
         return np.reshape(position_map, (self.map_size[0], self.map_size[1], 1)) # reshape to (SPACE, 1)
     
     @staticmethod
     def logHistoricalData(state, action):
         historical_data = {}
-        if action == ActionType.CHANGE_PHASE:
+        if action == ActionType.CHANGE_TO_NEXT_PHASE:
             historical_data['last_action_is_change'] = 1
         else:
             historical_data['last_action_is_change'] = 0

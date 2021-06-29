@@ -4,6 +4,7 @@ import numpy as np
 import random
 from sklearn.model_selection import train_test_split
 from glo_vars import GloVars
+import sys
 
 class Memory():
     def __init__(self, max_size):
@@ -19,24 +20,25 @@ class Memory():
         return len(self.buffer)
 
 class RLAgent(Controller):
-    def __init__(self, cycle_control):
+    def __init__(self, cycle_control, input_space, output_space):
         Controller.__init__(self)
         self.cycle_control = cycle_control
-        self.model = self.buildModel()
+        self.output_space = output_space
+        self.model = self.buildModel(input_space, output_space)
         self.exp_memory = Memory(GloVars.MEMORY_SIZE)
 
-    def buildModel(self):
+    def buildModel(self, input_space, output_space):
         print("Must <<overwrite>> \"build_mode\" function in RL-based methods")
-        return None
+        sys.exit(0)
 
     def processState(self, state):
-        print("Must <<override> processState(state)!!")
-        return state
+        print("Must <<override>> processState(state)!!")
+        pass
 
     def computeReward(self, state, historical_data):
         print("Muss <<override>> computeReward(state)")
         pass
-    
+        
     def replay(self):
         if self.exp_memory.len() < GloVars.SAMPLE_SIZE:
             return
@@ -57,18 +59,15 @@ class RLAgent(Controller):
         state_ = self.processState(state)
         out_ = self.model.predict(np.array([state_]))[0]
         action = np.argmax(out_)
-        is_to_change = 0 if 2*action == state['current_phase_index'] else 1
-        if is_to_change == 1:
-            return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+
+        if 2*action == state['current_phase_index']:
+            return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+        else:
+            return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}]
 
     def randomAction(self, state):
-        if random.randint(0, 1) == 0:
-            if state['current_phase_index'] == 0:
-                return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-            else:
-                return 0, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        action = random.randint(0, self.output_space - 1)
+        if 2*action == state['current_phase_index']:
+            return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
         else:
-            if state['current_phase_index'] == 2*1:
-                return 1, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+            return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}] 

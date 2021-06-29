@@ -73,5 +73,5 @@ class MaxPressure(Controller):
     def makeAction(self, state):
         number_veh_on_red_lanes, number_veh_on_green_lanes = self.processState(state)
         if (number_veh_on_red_lanes > number_veh_on_green_lanes):
-            return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+            return 1, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
         return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]

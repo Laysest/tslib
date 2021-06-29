@@ -14,20 +14,14 @@ import random
 from glo_vars import GloVars
 from VFB import VFB
 
-# FEATURE_SPACE = (8*4)
-PHASE_SPACE = (1)
-
-# we only support 3-way and 4-way intersections
-MAX_NUM_WAY = 4
-# we assume that there are only 2 red/green phases, user can change this depend on their config
-NUM_OF_RED_GREEN_PHASES = 2
-
 class IntelliLight(RLAgent):
-    def __init__(self, config=None, road_structure=None):    
+    def __init__(self, config, road_structure, number_of_phases):    
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
         self.incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
-        self.outgoing_lanes = [lane for k, road in road_structure.items() if 'out' in k for lane in road]        
-        RLAgent.__init__(self, config['cycle_control'])
+        self.outgoing_lanes = [lane for k, road in road_structure.items() if 'out' in k for lane in road]
+
+        input_space = ((self.map_size[0], self.map_size[1], 1), len(self.incoming_lanes)*4)
+        RLAgent.__init__(self, config['cycle_control'], input_space, int(number_of_phases/2))
 
     @staticmethod
     def computeReward(state, historical_data):
@@ -95,16 +89,19 @@ class IntelliLight(RLAgent):
         # reward += total_travel_time/60
 
         return reward
-
-    def buildModel(self):
+    
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
         # model = Sequential()
-        map_ = Input(shape=(self.map_size[0], self.map_size[1], 1))
-        lane_features_ = Input(shape=4*len(self.incoming_lanes))
-        # TODO -- FEATURE_SPACE depend on the intersection
-        phase_ = Input(shape=PHASE_SPACE)
+        map_size = input_space[0]
+        feature_length = input_space[1]
+
+        map_ = Input(shape=map_size)
+        lane_features_ = Input(shape=feature_length)
+        phase_ = Input(shape=(1))
         
         conv1_ = Conv2D(filters=32, kernel_size=(8, 8), strides=(4, 4), activation="relu")(map_)
         conv2_ = Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation="relu")(conv1_)
@@ -112,15 +109,23 @@ class IntelliLight(RLAgent):
 
         features_ = Concatenate()([lane_features_, map_feature_])
                   
-        shared_hidden_1_ = Dense(64, activation='relu')(features_)
+        shared_hidden_ = Dense(64, activation='relu')(features_)
 
-        separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_left_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
+        output = []
+        for i in range(output_space):
+            separated_hidden_ = Dense(32, activation='relu')(shared_hidden_)
+            output_ = Dense(output_space, activation='linear')(separated_hidden_)
+            output.append(output_)
 
-        separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_right_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
+        # separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_)
+        # output_left_ = Dense(output_space, activation='linear')(separated_hidden_1_left_)
 
-        out = tf.where(phase_ == 0, output_left_, output_right_)
+        # separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_)
+        # output_right_ = Dense(output_space, activation='linear')(separated_hidden_1_right_)
+        # output_as_tf = tf.Variable(output_)
+        out = output[phase_]
+        # for i in range(len(output_space)):
+        # out = tf.where(phase_ == 0, output_[0], tf.where())
 
         model = tf.keras.Model(inputs=[map_, lane_features_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
@@ -214,18 +219,18 @@ class IntelliLight(RLAgent):
         action = np.argmax(out_)
 
         if action == 1:
-            return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+            return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
         return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
 
     def randomAction(self, state):
         if random.randint(0, 1) == 0:
             return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return 1, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
 
     @staticmethod
     def logHistoricalData(state, action):
         historical_data = {}
-        if action == ActionType.CHANGE_PHASE:
+        if action == ActionType.CHANGE_TO_NEXT_PHASE:
             historical_data['last_action_is_change'] = 1
         else:
             historical_data['last_action_is_change'] = 0

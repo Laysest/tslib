@@ -60,7 +60,7 @@ from tslib import TSLib
 #     'net': 'grid/hz_4x4/road.net.xml',
 #     'veh_type': 'type.xml',
 #     'route': 'grid/hz_4x4/flow.route.xml',
-#     'end': 3600,
+#     'end': 600,
 #     'traffic_lights': [
 #         {'node_id': 'intersection_1_1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
 #         {'node_id': 'intersection_1_2', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/train/hz_4x4/CDRL'},
@@ -87,13 +87,27 @@ config = {
     'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
     'veh_type': 'type.xml',
     'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
-    'end': 600,
+    'end': 3600,
     'traffic_lights': [
         {'node_id': 'gneJ1', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/CDRL'},
     ],
     'log_folder': './log/dev/testbed-a-hour/CDRL',
     'gui': False,
 }
+
+# config = {
+#     'net': 'most/most.net.xml',
+#     'veh_type': 'type.xml',
+#     'route': 'most/most.rou.xml',
+#     'end': 600,
+#     'traffic_lights': [
+#         {'node_id': 'cluster_8985_9609', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/most/CDRL'},
+#         {'node_id': '9058', 'method': 'CDRL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/most/CDRL'}
+#     ],
+#     'log_folder': './log/dev/testbed-a-hour/CDRL',
+#     'gui': False,
+# }
+
 
 sim = TSLib(config)
 sim.train()

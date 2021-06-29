@@ -184,8 +184,8 @@ class TLCC(RLAgent):
             self.phase_length[0] -= self.cycle_control
         self.limitPhaseLength()
 
-        return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[0], 'executed': False},
-                    {'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[1], 'executed': False}]
+        return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[0], 'executed': False},
+                    {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[1], 'executed': False}]
 
     def makeAction(self, state):
         state_ = self.processState(state)
@@ -202,8 +202,8 @@ class TLCC(RLAgent):
             self.phase_length[0] -= self.cycle_control
         self.limitPhaseLength()
 
-        return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[0], 'executed': False},
-                    {'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[1], 'executed': False}]
+        return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[0], 'executed': False},
+                    {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[1], 'executed': False}]
 
     def limitPhaseLength(self):
         # Limit phase_length

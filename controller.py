@@ -4,9 +4,10 @@ class ActionType(Enum):
     CHOICE_OF_PHASE = 1
     CHANGING_KEEPING = 2
     DEFINE_NEXT_CYCLE = 3
-    CHANGE_PHASE = 4
+    CHANGE_TO_NEXT_PHASE = 4
     KEEP_PHASE = 5
     YELLOW_PHASE = 6
+    CHANGE_TO_PHASE = 7
 
 # class ControlAlgorithm(Enum):
 #     FixedTime = 1 # TODO
