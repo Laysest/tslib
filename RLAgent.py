@@ -59,7 +59,6 @@ class RLAgent(Controller):
         state_ = self.processState(state)
         out_ = self.model.predict(np.array([state_]))[0]
         action = np.argmax(out_)
-
         if 2*action == state['current_phase_index']:
             return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
         else:

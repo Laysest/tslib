@@ -462,7 +462,7 @@ class TrafficLight:
                                                 {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': 0, 'executed': False}]) # change to next of next phase
             elif action['type'] == ActionType.CHANGE_TO_PHASE:
                 self.control_actions.extend([{'type': ActionType.YELLOW_PHASE, 'length': self.yellow_duration, 'executed': False},
-                                            {'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action['phase_index']*2, 'length': action['length'], 'executed': False}])
+                                            {'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action['phase_index'], 'length': action['length'], 'executed': False}])
             elif action['type'] == ActionType.KEEP_PHASE:
                 self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
             else:
