@@ -25,7 +25,7 @@ NUM_TRAIN_STEP_TO_REPLACE = 2
 class TLCC(RLAgent):
     def __init__(self, config=None, road_structure=None):
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
-        super().__init__(self, config['cycle_control'])
+        RLAgent.__init__(self, config['cycle_control'])
         self.q_net = self.model
         self.target_net = self.buildModel()
         self.phase_length = [self.cycle_control for _ in range(GloVars.ACTION_SPACE)]

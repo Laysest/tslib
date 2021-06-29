@@ -497,7 +497,7 @@ class TrafficLight:
                 if self.control_actions[0]['type'] == ActionType.YELLOW_PHASE or self.control_actions[0]['type'] == ActionType.CHANGE_TO_NEXT_PHASE:
                     self.changeToNextPhase()
                 elif self.control_actions[0]['type'] == ActionType.CHANGE_TO_PHASE:
-                    self.changeToPhase(self.control_actions['phase_index'])
+                    self.changeToPhase(self.control_actions[0]['phase_index'])
             if self.control_actions[0]['length'] > 1:
                 self.control_actions[0]['length'] -= 1
                 break

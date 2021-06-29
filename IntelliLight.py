@@ -21,7 +21,7 @@ class IntelliLight(RLAgent):
         self.outgoing_lanes = [lane for k, road in road_structure.items() if 'out' in k for lane in road]
 
         input_space = ((self.map_size[0], self.map_size[1], 1), len(self.incoming_lanes)*4)
-        super().__init__()(self, config['cycle_control'], input_space, int(number_of_phases/2))
+        RLAgent.__init__(self, config['cycle_control'], input_space, int(number_of_phases/2))
         
     @staticmethod
     def computeReward(state, historical_data):
