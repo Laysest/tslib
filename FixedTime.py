@@ -6,13 +6,16 @@ class FixedTime(Controller):
     """
         The implementation of SOTL method
     """
-    def __init__(self, config, tf_id):
+    def __init__(self, config, tfl_id):
         Controller.__init__(self)
         self.cycle_control = config['cycle_control']
-        self.tf_id = tf_id
+        self.tfl_id = tfl_id
 
     def processState(self, state):
         pass
 
     def makeAction(self, state):
         return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': True}]
+
+    def isAdaptiveControl(self):
+        return False

@@ -12,7 +12,7 @@ class Vehicle:
         self.id = vehID
         self.type = traci.vehicle.getTypeID(self.id)
         self.route = traci.vehicle.getRoute(self.id)
-        self.now = traci.simulation.getTime()
+        self.now = GloVars.step
         self.start_time = self.now
         self.finish_time = 0
 
@@ -96,7 +96,7 @@ class Vehicle:
             df.to_csv(log_folder, mode='a', header=False, index=False)
 
     def updateTime(self):
-        self.now = traci.simulation.getTime()
+        self.now = GloVars.step
 
     def isFinished(self):
         return self.finish_time != 0

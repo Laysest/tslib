@@ -1,3 +1,4 @@
+import enum
 import sys
 import math
 import sumolib
@@ -10,6 +11,7 @@ from tensorflow.keras.optimizers import Adam
 from RLAgent import RLAgent
 from glo_vars import GloVars
 from controller import ActionType
+from VFB import VFB
 
 traci = GloVars.traci
 # we only support 3-way and 4-way intersections
@@ -22,42 +24,26 @@ ACTION_SPACE = GloVars.ACTION_SPACE * 2 + 1
 NUM_TRAIN_STEP_TO_REPLACE = 2
 
 class TLCC(RLAgent):
-    def __init__(self, config=None, tf_id=None):
-        RLAgent.__init__(self, config['cycle_control'])
-        self.config = config
-        self.tf_id = tf_id
-        nodes, center = self.getNodesSortedByDirection()
-        nodes_id = [node.getID() for node in nodes]
-        print("%s: %s" % (center.getID(), str(nodes_id)))
-        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
-        self.lanes_unique = list(dict.fromkeys(self.lanes))
-
+    def __init__(self, config, road_structure, number_of_phases):
+        self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
+        input_space = (self.map_size[0], self.map_size[1], 2)
+        output_space = number_of_phases + 1
+        RLAgent.__init__(self, config['cycle_control'], input_space, output_space)
         self.q_net = self.model
-        self.target_net = self.buildModel()
-        self.phase_length = [self.cycle_control for _ in range(GloVars.ACTION_SPACE)]
+        self.target_net = self.buildModel(input_space, output_space)
+        self.phase_length = [self.cycle_control for _ in range(int(number_of_phases/2))]
         self.train_step = 0
-    def computeReward(self, state, historical_data):
-        reward = 0
 
-        # get list vehicles
-        vehs = []
-        for lane in self.lanes_unique:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-        
-        # total delay
-        total_delay = 0
-        for veh in vehs:
-            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
-        
-        reward = historical_data['VFB']['last_total_delay'] - total_delay
+    @staticmethod
+    def computeReward(state, historical_data):
+        return VFB.computeReward(state, historical_data)
 
-        return reward
-
-    def buildModel(self):
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
-        map_ = Input(shape=GloVars.STATE_SPACE_TWO_CHANNELS)
+        map_ = Input(shape=(input_space))
         conv1_ = Conv2D(filters=32, kernel_size=(2, 2), strides=(2, 2), activation="relu")(map_)
         conv2_ = Conv2D(filters=16, kernel_size=(2, 2), strides=(2, 2), activation="relu")(conv1_)
         map_feature_ = Flatten()(conv2_)
@@ -65,143 +51,111 @@ class TLCC(RLAgent):
         hidden_2_v_ = Dense(64, activation='relu')(hidden_1_)
         hidden_2_a_ = Dense(64, activation='relu')(hidden_1_)
         v_ = Dense(1, activation='linear')(hidden_2_v_)
-        a_ = Dense(ACTION_SPACE, activation='linear')(hidden_2_a_)
+        a_ = Dense(output_space, activation='linear')(hidden_2_a_)
         Q_out_ = v_ + (a_ - tf.math.reduce_mean(a_, axis=1, keepdims=True))
         model = tf.keras.Model(inputs=map_, outputs=Q_out_)
         model.compile(loss='mean_squared_error', optimizer='adam')
         return model
-
-    def getNodesSortedByDirection(self):
-        """
-            This function will return a list of nodes sorted by direction
-                N
-            W       E
-                S
-            [N, E, S, W] for 4-way intersection
-
-                N
-            W       E
-            [N, E, None, W]
-
-        """
-        
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
-        neightbor_nodes = center_node.getNeighboringNodes()
-        # isolated...
-        # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
-        # 4x1 network
-        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
-        
-        # center_node_coord = center_node.getCoord()
-        return neightbor_nodes, center_node
-
+    
     def processState(self, state=None):
         """
             from general state returned from traffic light
             process to return position_map
         """
-        return np.reshape(self.buildMap(), GloVars.STATE_SPACE_TWO_CHANNELS) # reshape to (SPACE, 2)
+        return np.reshape(TLCC.buildMap(state, self.map_size, self.center_length_WE, self.center_length_NS), (self.map_size[0], self.map_size[1], 2))
 
-
-    def buildMap(self):
+    @staticmethod
+    def buildMap(state, map_size, center_length_WE, center_length_NS):
         """
             this function to return a 2D matrix indicating information on vehicles' positions
         """
-        # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
-        neightbor_nodes, center_node = self.getNodesSortedByDirection()
-        incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
+        road_structure = state['road_structure']
+        vehicles = state['vehicles']
+        position_mapped = np.zeros(map_size)
+        speed_mapped = np.zeros(map_size)
 
-        
-
-        position_mapped = np.zeros(GloVars.MAP_SIZE)
-        speed_mapped = np.zeros(GloVars.MAP_SIZE)
         # handle the North side
-        if neightbor_nodes[0] != None:
-            incoming_edge_from_north = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[0].getID()][0]
-            outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_north.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=True)
+        if 'north_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['north_road_in']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_position[j]
-                    speed_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_speed[j]
-            for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + i - len(road_structure['north_road_in'])] = arr_[j]
+                    speed_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + i - len(road_structure['north_road_in'])] = spd_arr[j]
+        if 'north_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['north_road_out']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_position[j]
-                    speed_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_speed[j]
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['north_road_out']) - i - 1] = arr_[j]        
+                    speed_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['north_road_out']) - i - 1] = spd_arr[j]        
 
         # handle the East side
-        if neightbor_nodes[1] != None:
-            incoming_edge_from_east = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[1].getID()][0]
-            outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_east.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+        if 'east_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['east_road_in']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_position[j]
-                    speed_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_speed[j]
-            for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=False)
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['east_road_in']) + i][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
+                    speed_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['east_road_in']) + i][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = spd_arr[j]
+        if 'east_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['east_road_out']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_position[j]
-                    speed_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_speed[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['east_road_out']) - i - 1][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
+                    speed_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['east_road_out']) - i - 1][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = spd_arr[j]
 
         # handle the South side
-        if neightbor_nodes[2] != None:
-            incoming_edge_from_south = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[2].getID()][0]
-            outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_south.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+        if 'south_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['south_road_in']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_position[j]
-                    speed_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_speed[j]
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['south_road_in']) - i - 1] = arr_[j]
+                    speed_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['south_road_in']) - i - 1] = spd_arr[j]
 
-            for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=False)
+        if 'south_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['south_road_out']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_position[j]
-                    speed_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_speed[j]
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['south_road_out']) + i] = arr_[j]
+                    speed_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['south_road_out']) + i] = spd_arr[j]
 
         # handle the West side
-        if len(neightbor_nodes) > 3 and neightbor_nodes[3] != None:
-            incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
-            outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_west.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=True)
+        if 'west_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['west_road_in']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_position[j]
-                    speed_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_speed[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['west_road_in']) - i - 1][j] = arr_[j]
+                    speed_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['west_road_in']) - i - 1][j] = spd_arr[j]
 
-            for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
-                arr_position, arr_speed = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+        if 'west_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['west_road_out']):
+                arr_, spd_arr = TLCC.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_position[j]
-                    speed_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_speed[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['west_road_out']) + i][j] = arr_[j]
+                    speed_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['west_road_out']) + i][j] = spd_arr[j]
 
         return [position_mapped, speed_mapped]
     
-    def buildArray(self, lane=None, incoming=True):
-        arr_position = np.zeros(GloVars.ARRAY_LENGTH)
-        arr_speed = np.zeros(GloVars.ARRAY_LENGTH)
+    @staticmethod
+    def buildArray(lane=None, vehicles=None, incoming=None):
+        pos_arr = np.zeros(GloVars.ARRAY_LENGTH)
+        spd_arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
-        lane_length = traci.lane.getLength(lane)
-        vehs = traci.lane.getLastStepVehicleIDs(lane)
+        vehs = [veh for veh in vehicles if veh['lane'] == lane['id']]
         for veh in vehs:
-            veh_distance = traci.vehicle.getLanePosition(veh)
-            veh_speed = traci.vehicle.getSpeed(veh)
+            veh_distance = veh['distance_from_lane_start']
             if incoming:
-                veh_distance -= lane_length - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
+                veh_distance -= lane['length'] - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
             if veh_distance < 0:
                 continue
             index = math.floor(veh_distance/5)
 
             if index >= GloVars.ARRAY_LENGTH:
                 continue
-            veh_length = traci.vehicle.getLength(veh)
-            for i in range(math.ceil(veh_length/5)):
+
+            for i in range(math.ceil(veh['length']/5)):
                 if 0 <= index - i < GloVars.ARRAY_LENGTH:
-                    arr_position[index - i] = 1
-                    arr_speed[index - 1] = veh_speed
-        return arr_position, arr_speed
+                    pos_arr[index - i] = 1
+                    spd_arr[index - i] = veh['speed']
+        return pos_arr, spd_arr
 
     def replay(self):
         if self.exp_memory.len() < GloVars.SAMPLE_SIZE:
@@ -223,8 +177,7 @@ class TLCC(RLAgent):
         self.target_net.set_weights(self.q_net.get_weights())
 
     def randomAction(self, state):
-        # TODO
-        action = random.randint(0, ACTION_SPACE - 1)
+        action = random.randint(0, self.output_space - 1)
         if action == 0:
             self.phase_length[0] += self.cycle_control
         elif action == 1:
@@ -235,26 +188,29 @@ class TLCC(RLAgent):
             self.phase_length[0] -= self.cycle_control
         self.limitPhaseLength()
 
-        return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[0], 'executed': False},
-                    {'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[1], 'executed': False}]
+        return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[0], 'executed': False},
+                    {'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.phase_length[1], 'executed': False}]
 
     def makeAction(self, state):
         state_ = self.processState(state)
         out_ = self.model.predict(np.array([state_]))[0]
         action = np.argmax(out_)
 
-        if action == 0:
-            self.phase_length[0] += self.cycle_control
-        elif action == 1:
-            self.phase_length[1] += self.cycle_control
-        elif action == 2:
-            self.phase_length[1] -= self.cycle_control
-        elif action == 3:
-            self.phase_length[0] -= self.cycle_control
-        self.limitPhaseLength()
+        if action != self.output_space - 1:
+            tmp = int(action/2)
+            if action % 2 == 0:
+                self.phase_length[tmp] += self.cycle_control
+                self.phase_length[tmp] = self.phase_length[tmp] if self.phase_length[tmp] < 60 else 60
+            else:
+                self.phase_length[tmp] -= self.cycle_control
+                self.phase_length[tmp] = self.phase_length[tmp] if self.phase_length[tmp] > 5 else 5
 
-        return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[0], 'executed': False},
-                    {'type': ActionType.CHANGE_PHASE, 'length': self.phase_length[1], 'executed': False}]
+        action_stack = []
+        for i, length in enumerate(self.phase_length):
+            if length > 0:
+                action_stack.append({'type': ActionType.CHANGE_TO_PHASE, 'phase_index': i*2, 'length': length, 'executed': False})
+
+        return action, action_stack        
 
     def limitPhaseLength(self):
         # Limit phase_length
@@ -266,3 +222,12 @@ class TLCC(RLAgent):
             self.phase_length[1] = 60
         elif self.phase_length[0] < 0:
             self.phase_length[0] = 0
+
+    @staticmethod
+    def logHistoricalData(state, action):
+        historical_data = {}
+        total_delay = 0
+        for veh in state['vehicles']:
+            total_delay += 1 - veh['speed'] / veh['max_speed']
+        historical_data['last_total_delay'] = total_delay
+        return historical_data

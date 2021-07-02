@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2021-06-15 02:19:12 by Eclipse SUMO netedit Version 1.9.1
+<!-- generated on 2021-06-29 22:23:03 by Eclipse SUMO netedit Version 1.9.2
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/vtoan/UTC/tslib/traffic-sumo/isolated-intersection/testbed-a-hour/road.net.xml"/>
+        <sumo-net-file value="\\wsl$\Ubuntu-18.04\home\vtoan\UTC\tslib\traffic-sumo\isolated-intersection\testbed-a-hour\road.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/vtoan/UTC/tslib/traffic-sumo/isolated-intersection/testbed-a-hour/road.net.xml"/>
+        <output-file value="\\wsl$\Ubuntu-18.04\home\vtoan\UTC\tslib\traffic-sumo\isolated-intersection\testbed-a-hour\road.net.xml"/>
     </output>
 
     <processing>
@@ -142,9 +142,11 @@
         <lane id="WtoC_1" index="1" speed="13.89" length="292.80" shape="-300.00,-1.60 -7.20,-1.60"/>
     </edge>
 
-    <tlLogic id="gneJ1" type="static" programID="1" offset="0">
+    <tlLogic id="gneJ1" type="static" programID="0" offset="0">
         <phase duration="38" state="rrrrGGggrrrrGGgg"/>
-        <phase duration="3"  state="rrrryyyyrrrryyyy"/>
+        <phase duration="3"  state="rrrryyggrrrryygg"/>
+        <phase duration="6"  state="rrrrrrGGrrrrrrGG"/>
+        <phase duration="3"  state="rrrrrryyrrrrrryy"/>
         <phase duration="37" state="GGggrrrrGGggrrrr"/>
         <phase duration="3"  state="yyyyrrrryyyyrrrr"/>
     </tlLogic>

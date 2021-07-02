@@ -10,172 +10,158 @@ from RLAgent import RLAgent
 from glo_vars import GloVars
 
 np.set_printoptions(threshold=np.inf)
-traci = GloVars.traci
-# we only support 3-way and 4-way intersections
-MAX_NUM_WAY = 4
+    
 
 class VFB(RLAgent):
-    def __init__(self, config=None, tf_id=None):
-        RLAgent.__init__(self, config['cycle_control'])
-        self.config = config
-        self.tf_id = tf_id
-        nodes, center = self.getNodesSortedByDirection()
-        nodes_id = [node.getID() for node in nodes]
-        print("%s: %s" % (center.getID(), str(nodes_id)))
-        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
-        self.lanes_unique = list(dict.fromkeys(self.lanes))
+    def __init__(self, config, road_structure, number_of_phases):
+        self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
+        RLAgent.__init__(self, config['cycle_control'], (self.map_size[0], self.map_size[1], 1), number_of_phases/2)
 
-    def computeReward(self, state, historical_data):
+    @staticmethod
+    def getMapSize(road_structure):
+        center_length_NS = 1
+        if 'east_road_in' in road_structure:
+            center_length_NS = len(road_structure['east_road_in'])
+        if ('west_road_in' in road_structure) and (center_length_NS < len(road_structure['west_road_in'])):
+            center_length_NS = len(road_structure['west_road_in'])
+
+        center_length_WE = 1
+        if 'north_road_in' in road_structure:
+            center_length_WE = len(road_structure['north_road_in'])
+        if ('south_road_in' in road_structure) and (center_length_WE < len(road_structure['south_road_in'])):
+            center_length_WE = len(road_structure['south_road_in'])
+
+        map_size = (2*(GloVars.ARRAY_LENGTH + center_length_WE), 2*(GloVars.ARRAY_LENGTH + center_length_NS))
+        return map_size, center_length_WE, center_length_NS
+
+    @staticmethod
+    def computeReward(state, historical_data):
+        if historical_data == None:
+            return 0
         reward = 0
 
         # get list vehicles
-        vehs = []
-        for lane in self.lanes_unique:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
+        vehs = state['vehicles']
         
         # total delay
         total_delay = 0
         for veh in vehs:
-            total_delay += 1 - traci.vehicle.getSpeed(veh) / traci.vehicle.getAllowedSpeed(veh)
+            total_delay += 1 - veh['speed'] / veh['max_speed']
         
-        reward = historical_data['VFB']['last_total_delay'] - total_delay
+        reward = historical_data['last_total_delay'] - total_delay
 
         return reward
-
-    def buildModel(self):
+    
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
         model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=GloVars.STATE_SPACE))
+        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=input_space))
         model.add(MaxPooling2D((2, 2)))
         model.add(Flatten())
         model.add(Dense(128, activation='relu'))
         model.add(Dense(32, activation='relu'))
-        model.add(Dense(GloVars.ACTION_SPACE, activation='linear'))
+        model.add(Dense(output_space, activation='linear'))
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
-
-    def getNodesSortedByDirection(self):
-        """
-            This function will return a list of nodes sorted by direction
-                N
-            W       E
-                S
-            [N, E, S, W] for 4-way intersection
-
-                N
-            W       E
-            [N, E, None, W]
-
-        """
-        
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
-        neightbor_nodes = center_node.getNeighboringNodes()
-        # isolated...
-        # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
-        # 4x1 network
-        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
-        
-        # center_node_coord = center_node.getCoord()
-        return neightbor_nodes, center_node
 
     def processState(self, state=None):
         """
             from general state returned from traffic light
             process to return position_map
         """
-        return np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
+        map_ = VFB.buildMap(state, self.map_size, self.center_length_WE, self.center_length_NS)
+        return np.reshape(map_, (self.map_size[0], self.map_size[1], 1)) # reshape to (SPACE, 1)
 
-
-    def buildMap(self):
+    @staticmethod
+    def buildMap(state, map_size, center_length_WE, center_length_NS):
         """
             this function to return a 2D matrix indicating information on vehicles' positions
         """
-        # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
-        neightbor_nodes, center_node = self.getNodesSortedByDirection()
-        incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
-
-        
-
-        position_mapped = np.zeros(GloVars.MAP_SIZE)
+        road_structure = state['road_structure']
+        vehicles = state['vehicles']
+        position_mapped = np.zeros(map_size)
 
         # handle the North side
-        if neightbor_nodes[0] != None:
-            incoming_edge_from_north = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[0].getID()][0]
-            outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_north.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
+        if 'north_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['north_road_in']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + i - len(road_structure['north_road_in'])] = arr_[j]
+        if 'north_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['north_road_out']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
-        
+                    position_mapped[j][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['north_road_out']) - i - 1] = arr_[j]        
 
         # handle the East side
-        if neightbor_nodes[1] != None:
-            incoming_edge_from_east = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[1].getID()][0]
-            outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_east.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+        if 'east_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['east_road_in']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['east_road_in']) + i][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
+        if 'east_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['east_road_out']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['east_road_out']) - i - 1][GloVars.ARRAY_LENGTH + center_length_NS + j + 1] = arr_[j]
 
         # handle the South side
-        if neightbor_nodes[2] != None:
-            incoming_edge_from_south = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[2].getID()][0]
-            outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_south.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
+        if 'south_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['south_road_in']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
-
-            for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS + len(road_structure['south_road_in']) - i - 1] = arr_[j]
+        if 'south_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['south_road_out']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
+                    position_mapped[j + GloVars.ARRAY_LENGTH + center_length_WE + 1][GloVars.ARRAY_LENGTH + center_length_NS - len(road_structure['south_road_out']) + i] = arr_[j]
 
         # handle the West side
-        if len(neightbor_nodes) > 3 and neightbor_nodes[3] != None:
-            incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
-            outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_west.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
+        if 'west_road_in' in road_structure:
+            for i, lane in enumerate(road_structure['west_road_in']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=True)
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE + len(road_structure['west_road_in']) - i - 1][j] = arr_[j]
+        if 'west_road_out' in road_structure:
+            for i, lane in enumerate(road_structure['west_road_out']):
+                arr_ = VFB.buildArray(lane=lane, vehicles=vehicles, incoming=False)[::-1]
                 for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
+                    position_mapped[GloVars.ARRAY_LENGTH + center_length_WE - len(road_structure['west_road_out']) + i][j] = arr_[j]
 
         return position_mapped
     
-    def buildArray(self, lane=None, incoming=True):
+    @staticmethod
+    def buildArray(lane=None, vehicles=None, incoming=None):
         arr = np.zeros(GloVars.ARRAY_LENGTH)
         # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
-        lane_length = traci.lane.getLength(lane)
-        vehs = traci.lane.getLastStepVehicleIDs(lane)
+        vehs = [veh for veh in vehicles if veh['lane'] == lane['id']]
         for veh in vehs:
-            veh_distance = traci.vehicle.getLanePosition(veh)
-
+            veh_distance = veh['distance_from_lane_start']
             if incoming:
-                veh_distance -= lane_length - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
+                veh_distance -= lane['length'] - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
             if veh_distance < 0:
                 continue
             index = math.floor(veh_distance/5)
 
             if index >= GloVars.ARRAY_LENGTH:
                 continue
-            veh_length = traci.vehicle.getLength(veh)
-            for i in range(math.ceil(veh_length/5)):
+
+            for i in range(math.ceil(veh['length']/5)):
                 if 0 <= index - i < GloVars.ARRAY_LENGTH:
                     arr[index - i] = 1
 
         return arr
+
+    @staticmethod
+    def logHistoricalData(state, action):
+        historical_data = {}
+        total_delay = 0
+        for veh in state['vehicles']:
+            total_delay += 1 - veh['speed'] / veh['max_speed']
+        historical_data['last_total_delay'] = total_delay
+        return historical_data

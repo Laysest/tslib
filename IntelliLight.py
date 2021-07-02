@@ -12,86 +12,96 @@ import sumolib
 import sys
 import random
 from glo_vars import GloVars
-
-
-traci = GloVars.traci
-
-# FEATURE_SPACE = (8*4)
-PHASE_SPACE = (1)
-
-# we only support 3-way and 4-way intersections
-MAX_NUM_WAY = 4
-# we assume that there are only 2 red/green phases, user can change this depend on their config
-NUM_OF_RED_GREEN_PHASES = 2
+from VFB import VFB
 
 class IntelliLight(RLAgent):
-    def __init__(self, config=None, tf_id=None):        
-        self.config = config
-        self.tf_id = tf_id
-        nodes, center = self.getNodesSortedByDirection()
-        nodes_id = [node.getID() for node in nodes]
-        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
-        self.lanes_unique = list(dict.fromkeys(self.lanes))
-        RLAgent.__init__(self, config['cycle_control'])
+    def __init__(self, config, road_structure, number_of_phases):    
+        self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
+        self.incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
+        self.outgoing_lanes = [lane for k, road in road_structure.items() if 'out' in k for lane in road]
 
-        print("%s: %s" % (center.getID(), str(nodes_id)))
-
-    def computeReward(self, state, historical_data):
-        reward = 0
+        input_space = ((self.map_size[0], self.map_size[1], 1), len(self.incoming_lanes)*4)
+        RLAgent.__init__(self, config['cycle_control'], input_space, int(number_of_phases/2))
+        
+    @staticmethod
+    def computeReward(state, historical_data):
+        if historical_data == None:
+            return 0
         # penalty for queue lengths:
+        road_structure = state['road_structure']
+        vehs = state['vehicles']
+        lanes = []
+        for road in road_structure.keys():
+            lanes.extend(road_structure[road])
+
+        reward = 0
+        # penalty for queuelength
         L = 0
-        for lane in self.lanes_unique:
-            L += traci.lane.getLastStepHaltingNumber(lane)
+        for lane in lanes:
+            for veh in vehs:
+                if veh['lane'] == lane['id'] and veh['speed'] < 5:
+                    L += 1
         reward -= 0.25 * L
 
         # penalty for delay
         D = 0
-        for lane in self.lanes_unique:
-            D += 1 - traci.lane.getLastStepMeanSpeed(lane) / traci.lane.getMaxSpeed(lane)
+        for lane in lanes:
+            total_speed, count = 0, 0
+            for veh in vehs:
+                if veh['lane'] == lane['id']:
+                    total_speed += veh['speed']
+                    count += 1
+            if count > 0:
+                D += 1 - (total_speed/count)/lane['max_allowed_speed']
         reward -= 0.25*D
 
         # penalty for waiting time
         W = 0
-        for lane in self.lanes_unique:
-            W += traci.lane.getWaitingTime(lane) / 60.0
+        for lane in lanes:
+            for veh in vehs:
+                if veh['lane'] == lane['id']:
+                    W += veh['waiting_time']
+        W /= 60.0
         reward -= 0.25*W
 
         # penalty for change
-        reward -= 5*historical_data['IntelliLight']['last_action_is_change']
+        reward -= 5*historical_data['last_action_is_change']
 
-        # reward for number vehicles
+        # reward for number vehicles passed
         N = 0
-        vehs = []
-        for lane in self.lanes_unique:
-            vehs.extend(traci.lane.getLastStepVehicleIDs(lane))
-        vehs_id_passed = []
-        for veh_id_ in historical_data['IntelliLight']['last_vehs_id']:
-            # if a veh in vehs_id but not in current vehs => passed
-            if veh_id_ not in vehs:
-                N += 1
-                vehs_id_passed.append(veh_id_)
-        reward += N
+        vehs = state['vehicles']
+        historical_vehs = state['vehicles']
+        incoming_lanes_id = [lane['id'] for k, road in state['road_structure'].items() if 'in' in k for lane in road]
 
-        #reward for travel time of passed vehicles
-        total_travel_time = 0 
-        for veh_id_ in vehs_id_passed:
-            if (veh_id_ in GloVars.vehicles.keys()):
-                veh_route_ = GloVars.vehicles[veh_id_].status['route']
-                if len(veh_route_) >= 3:
-                    total_travel_time += veh_route_[-3]['last_time_step'] - veh_route_[-3]['first_time_step']
-        reward += total_travel_time/60
+        for veh in historical_vehs:
+            if veh['lane'] in incoming_lanes_id:
+                tmp = next((item for item in vehs if item["id"] == veh["id"]), False)
+                if (tmp == False) or (tmp['lane'] not in incoming_lanes_id):
+                    N += 1
+
+        # #reward for travel time of passed vehicles
+        # total_travel_time = 0
+        # for veh_id_ in vehs_id_passed:
+        #     if (veh_id_ in GloVars.vehicles.keys()):
+        #         veh_route_ = GloVars.vehicles[veh_id_].status['route']
+        #         if len(veh_route_) >= 3:
+        #             total_travel_time += veh_route_[-3]['last_time_step'] - veh_route_[-3]['first_time_step']
+        # reward += total_travel_time/60
 
         return reward
-
-    def buildModel(self):
+    
+    @staticmethod
+    def buildModel(input_space, output_space):
         """
             return the model in keras
         """
         # model = Sequential()
-        map_ = Input(shape=GloVars.STATE_SPACE)
-        lane_features_ = Input(shape=4*len(self.lanes_unique))
-        # TODO -- FEATURE_SPACE depend on the intersection
-        phase_ = Input(shape=PHASE_SPACE)
+        map_size = input_space[0]
+        feature_length = input_space[1]
+
+        map_ = Input(shape=map_size)
+        lane_features_ = Input(shape=feature_length)
+        phase_ = Input(shape=(1))
         
         conv1_ = Conv2D(filters=32, kernel_size=(8, 8), strides=(4, 4), activation="relu")(map_)
         conv2_ = Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation="relu")(conv1_)
@@ -99,189 +109,96 @@ class IntelliLight(RLAgent):
 
         features_ = Concatenate()([lane_features_, map_feature_])
                   
-        shared_hidden_1_ = Dense(64, activation='relu')(features_)
+        shared_hidden_ = Dense(64, activation='relu')(features_)
 
-        separated_hidden_1_left_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_left_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_left_)
+        output = []
+        for i in range(output_space):
+            separated_hidden_ = Dense(32, activation='relu')(shared_hidden_)
+            output_ = Dense(output_space, activation='linear')(separated_hidden_)
+            output.append(output_)
 
-        separated_hidden_1_right_ = Dense(32, activation='relu')(shared_hidden_1_)
-        output_right_ = Dense(GloVars.ACTION_SPACE, activation='linear')(separated_hidden_1_right_)
-
-        out = tf.where(phase_ == 0, output_left_, output_right_)
+        if output_space == 2:
+            out = tf.where(phase_ == 0, output[0], output[1])
+        elif output_space == 3:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], output[2]))
+        elif output_space == 4:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], output[3])))
+        elif output_space == 5:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], tf.where(phase_ == 3, output[3], output[4]))))
+        elif output_space == 6:
+            out = tf.where(phase_ == 0, output[0], tf.where(phase_ == 1, output[1], tf.where(phase_ == 2, output[2], tf.where(phase_ == 3, output[3], tf.where(phase_ == 4, output[4], output[5])))))
+        else:
+            print("<<< IntelliLight support only maximum 6 phases >>>")
+            sys.exit(0)
 
         model = tf.keras.Model(inputs=[map_, lane_features_, phase_], outputs=out)
         model.compile(loss='mean_squared_error', optimizer='adam')
 
         return model
 
-    def getNodesSortedByDirection(self):
-        """
-            This function will return a list of nodes sorted by direction
-                N
-            W       E
-                S
-            [N, E, S, W] for 4-way intersection
-
-                N
-            W       E
-            [N, E, None, W]
-
-        """
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.tf_id)
-        neightbor_nodes = center_node.getNeighboringNodes()
-        # isolated...
-        # neightbor_nodes_sorted = [neightbor_nodes[1], neightbor_nodes[0], neightbor_nodes[2], neightbor_nodes[3]]
-        # 4x1 network
-        # neightbor_nodes_sorted = [neightbor_nodes[2], neightbor_nodes[1], neightbor_nodes[3], neightbor_nodes[0]]
-        
-        # center_node_coord = center_node.getCoord()
-        return neightbor_nodes, center_node
-
-    def processState(self, state=None):
+    def processState(self, state):
         """
             from general state returned from traffic light
             process to return position_map
         """
-        map_ = np.reshape(self.buildMap(), GloVars.STATE_SPACE) # reshape to (SPACE, 1)
+        map_ = VFB.buildMap(state, self.map_size, self.center_length_WE, self.center_length_NS)
+        map_ = np.reshape(map_, (self.map_size[0], self.map_size[1], 1)) # reshape to (SPACE, 1)
         
-        lane_features_ = self.getLaneFeatures()
+        lane_features_ = self.getLaneFeatures(state)
 
-        phase = traci.trafficlight.getPhase(self.tf_id)
-        state_ = [np.array(map_), np.array(lane_features_), np.array([phase])]
+        state_ = [np.array(map_), np.array(lane_features_), np.array([state['current_phase_index']])]
         return state_
 
-    def getLaneFeatures(self):
-        all_logic_ = traci.trafficlight.getAllProgramLogics(self.tf_id)[0]
-        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        # lanes = list(dict.fromkeys(lanes_in_phases))
+    def getLaneFeatures(self, state):
+        from traffic_light import LightState
+        vehs = state['vehicles']
+        # all_logic_ = traci.trafficlight.getAllProgramLogics(self.tfl_id)[0]
+        # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
+        # # lanes = list(dict.fromkeys(lanes_in_phases))
         lane_features_ = []
 
         # queue length
-        for lane in self.lanes_unique:
-            lane_features_.append(traci.lane.getLastStepHaltingNumber(lane))
+        for lane in self.incoming_lanes:
+            queue_length = 0
+            for veh in vehs:
+                if veh['lane'] == lane['id'] and veh['speed'] < 5:
+                    queue_length += 1
+            lane_features_.append(queue_length)
         
         # waiting time
-        for lane in self.lanes_unique:
-            lane_features_.append(traci.lane.getWaitingTime(lane))
+        for lane in self.incoming_lanes:
+            waiting_time = 0
+            for veh in vehs:
+                if veh['lane'] == lane['id']:
+                    waiting_time += veh['waiting_time']
+            lane_features_.append(waiting_time)
 
         # phase vector
-        for lane in self.lanes_unique:
-            lane_features_.append(1 if current_logic[self.lanes.index(lane)].lower() == 'g' else 0)
+        light_state = {}
+        phase_detail = state['phase_description'][state['current_phase_index']]
+        for item in phase_detail:
+            if item['from'] not in light_state:
+                light_state[item['from']] = 0
+            if item['light_state'] == LightState.Green:
+                light_state[item['from']] += 1
+            else:
+                light_state[item['from']] -= 1
+
+        for lane in self.incoming_lanes:
+            if light_state[lane['id']] > 0:
+                lane_features_.append(LightState.Green)
+            else:
+                lane_features_.append(LightState.Red)
 
         # number of vehicles
-        for lane in self.lanes_unique:
-            lane_features_.append(traci.lane.getLastStepVehicleNumber(lane))
+        for lane in self.incoming_lanes:
+            num_vehs = 0
+            for veh in vehs:
+                if veh['lane'] == lane['id']:
+                    num_vehs += 1
+            lane_features_.append(num_vehs)
 
         return lane_features_
-
-    def buildMap(self):
-        """
-            this function to return a 2D matrix indicating information on vehicles' positions
-        """
-        # ['NtoC_0', 'NtoC_1', 'EtoC_0', 'EtoC_1', 'StoC_0', 'StoC_1', 'WtoC_0', 'WtoC_1']
-        neightbor_nodes, center_node = self.getNodesSortedByDirection()
-        incoming_edges, outgoing_edges = center_node.getIncoming(), center_node.getOutgoing()
-
-        position_mapped = np.zeros(GloVars.MAP_SIZE)
-
-        # handle the North side
-        if neightbor_nodes[0] != None:
-            incoming_edge_from_north = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[0].getID()][0]
-            outgoing_edge_to_north = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[0].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_north.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + i - incoming_edge_from_north.getLaneNumber()] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_north.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_north.getLaneNumber() - i - 1] = arr_[j]
-        
-
-        # handle the East side
-        if neightbor_nodes[1] != None:
-            incoming_edge_from_east = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[1].getID()][0]
-            outgoing_edge_to_east = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[1].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_east.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_east.getLaneNumber() + i][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_east.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_east.getLaneNumber() - i - 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + j + 1] = arr_[j]
-
-        # handle the South side
-        if neightbor_nodes[2] != None:
-            incoming_edge_from_south = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[2].getID()][0]
-            outgoing_edge_to_south = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[2].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_south.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)[::-1]
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + incoming_edge_from_south.getLaneNumber() - i - 1] = arr_[j]
-
-            for i, lane in enumerate(outgoing_edge_to_south.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[j + GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + 1][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - outgoing_edge_to_south.getLaneNumber() + i] = arr_[j]
-
-        # handle the West side
-        if len(neightbor_nodes) > 3 and neightbor_nodes[3] != None:
-            incoming_edge_from_west = [edge for edge in incoming_edges if edge.getFromNode().getID() == neightbor_nodes[3].getID()][0]
-            outgoing_edge_to_west = [edge for edge in outgoing_edges if edge.getToNode().getID() == neightbor_nodes[3].getID()][0]
-            for i, lane in enumerate(incoming_edge_from_west.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=True)
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH + outgoing_edge_to_west.getLaneNumber() - i - 1][j] = arr_[j]
-            for i, lane in enumerate(outgoing_edge_to_west.getLanes()):
-                arr_ = self.buildArray(lane=lane.getID(), incoming=False)[::-1]
-                for j in range(GloVars.ARRAY_LENGTH):
-                    position_mapped[GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH - incoming_edge_from_west.getLaneNumber() + i][j] = arr_[j]
-
-        return self.addSignalInfor(position_mapped, traci.trafficlight.getPhase(self.tf_id))
-    
-    def buildArray(self, lane=None, incoming=True):
-        arr = np.zeros(GloVars.ARRAY_LENGTH)
-        # lane = 'CtoW_0', 'EtoC_0' It is inverted for this case
-        lane_length = traci.lane.getLength(lane)
-        vehs = traci.lane.getLastStepVehicleIDs(lane)
-        for veh in vehs:
-            veh_distance = traci.vehicle.getLanePosition(veh)
-
-            if incoming:
-                veh_distance -= lane_length - GloVars.LENGTH_CELL*GloVars.ARRAY_LENGTH
-            if veh_distance < 0:
-                continue
-            index = math.floor(veh_distance/5)
-
-            if index >= GloVars.ARRAY_LENGTH:
-                continue
-            veh_length = traci.vehicle.getLength(veh)
-            for i in range(math.ceil(veh_length/5)):
-                if 0 <= index - i < GloVars.ARRAY_LENGTH:
-                    arr[index - i] = 1
-
-        return arr
-
-    def addSignalInfor(self, position_mapped, cur_phase):
-        neightbor_nodes, center_node = self.getNodesSortedByDirection()
-
-        # 4-way intersection
-        if None not in neightbor_nodes:
-            # cur_phase == 0 ~ allow N and S
-            if cur_phase == 0:
-                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH] = 0.8, 0.8
-                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH] = 0.2, 0.2
-            elif cur_phase == 2:
-                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH] = 0.2, 0.2
-                position_mapped[GloVars.ARRAY_LENGTH][GloVars.ARRAY_LENGTH + GloVars.CENTER_LENGTH], position_mapped[GloVars.ARRAY_LENGTH+GloVars.CENTER_LENGTH][GloVars.ARRAY_LENGTH] = 0.8, 0.8
-            else:
-                print("Error in CRDL.py - addSignalInfor()")
-        # 3-way intersection
-        else:
-            pass
-
-        return position_mapped
     
     def actionType(self):
         return ActionType.CHANGING_KEEPING
@@ -316,12 +233,21 @@ class IntelliLight(RLAgent):
         action = np.argmax(out_)
 
         if action == 1:
-            return action, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+            return action, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
         return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
 
     def randomAction(self, state):
         if random.randint(0, 1) == 0:
             return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return 1, [{'type': ActionType.CHANGE_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return 1, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
 
-    
+    @staticmethod
+    def logHistoricalData(state, action):
+        historical_data = {}
+        if action == ActionType.CHANGE_TO_NEXT_PHASE:
+            historical_data['last_action_is_change'] = 1
+        else:
+            historical_data['last_action_is_change'] = 0
+        historical_data['vehicles'] = state['vehicles']
+
+        return historical_data
