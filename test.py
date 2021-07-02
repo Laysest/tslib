@@ -87,11 +87,12 @@ config = {
     'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
     'veh_type': 'type.xml',
     'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
-    'end': 600,
+    'end': 3600,
     'traffic_lights': [
-        {'node_id': 'gneJ1', 'method': 'SOTL', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/SOTL'},
+        {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'},
     ],
-    'log_folder': './log/dev/testbed-a-hour/SOTL',
+    'log_folder': './log/dev/testbed-a-hour/MaxPressure',
+    'simulator': 'SUMO',
     'gui': False,
 }
 

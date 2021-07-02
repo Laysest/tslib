@@ -67,9 +67,9 @@ class TrafficLight:
         elif self.control_algorithm == 'TLCC':
             self.controller = TLCC(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'FixedTime':
-            self.controller = FixedTime(config=config, tf_id=self.id)
+            self.controller = FixedTime(config=config, tfl_id=self.id)
         elif self.control_algorithm == 'MaxPressure':
-            self.controller = MaxPressure(config=config, tf_id=self.id)
+            self.controller = MaxPressure(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         else:
             print("<<< Must implement %s >>>" % self.control_algorithm)
             sys.exit(0)
@@ -293,10 +293,6 @@ class TrafficLight:
                         sorted_nodes.insert(0, None)
                         sorted_nodes.insert(2, incoming_nodes[0])
 
-        # print(center_node.getCoord())
-        # for node in sorted_nodes:
-        #     print(node.getID(), ': ', node.getCoord())
-
         def getLanesArray(edge):
             return [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed(), 'light_state': None} for lane in edge.getLanes()]
 
@@ -338,7 +334,6 @@ class TrafficLight:
     def getPhaseDescription(self):
         phases = traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases()
         links = traci.trafficlight.getControlledLinks(self.id)
-        print(links)
         def map_phase_state(state):
             if state in ['r', 'R']:
                 return LightState.Red
@@ -360,7 +355,7 @@ class TrafficLight:
     def logStep(self, episode):
         log_ = {
             'ep': episode,
-            'step': traci.simulation.getTime(),
+            'step': GloVars.step,
             'id': self.id,
             'CO2_emission': [traci.lane.getCO2Emission(lane) for lane in self.lanes_id],
             'CO_emission': [traci.lane.getCOEmission(lane) for lane in self.lanes_id],
@@ -434,9 +429,6 @@ class TrafficLight:
                     'waiting_time': traci.vehicle.getWaitingTime(veh)
                 })
         current_phase_index = traci.trafficlight.getPhase(self.id)
-                     
-        # print(traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases())
-        # print()
 
         return {
             'road_structure': self.road_structure,

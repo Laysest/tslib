@@ -152,7 +152,7 @@ class IntelliLight(RLAgent):
     def getLaneFeatures(self, state):
         from traffic_light import LightState
         vehs = state['vehicles']
-        # all_logic_ = traci.trafficlight.getAllProgramLogics(self.tf_id)[0]
+        # all_logic_ = traci.trafficlight.getAllProgramLogics(self.tfl_id)[0]
         # current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
         # # lanes = list(dict.fromkeys(lanes_in_phases))
         lane_features_ = []

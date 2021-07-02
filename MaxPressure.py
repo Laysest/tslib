@@ -1,7 +1,7 @@
 import sys
+import numpy as np
 from controller import Controller, ActionType
 from glo_vars import GloVars
-import sumolib
 traci = GloVars.traci
 
 MIN_GREEN_VEHICLE = 10
@@ -12,13 +12,11 @@ class MaxPressure(Controller):
     """
         The implementation of SOTL method
     """
-    def __init__(self, config, tf_id):
+    def __init__(self, config, road_structure, number_of_phases):
         Controller.__init__(self)
         self.cycle_control = config['cycle_control']
-        self.tf_id = tf_id
-        self.lanes = traci.trafficlight.getControlledLanes(self.tf_id)
-        self.lanes_unique = list(dict.fromkeys(self.lanes))
-
+        self.incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
+        self.number_of_phases = number_of_phases
 
     def processState(self, state):
         """
@@ -27,24 +25,34 @@ class MaxPressure(Controller):
             current_logic: 'ggggrrrrgggg' shows status of traffic light
             num_veh_ordered: [1, 2, 1, 5, ...] shows number of vehicles on each lane by order
         """
-        all_logic_ = traci.trafficlight.getAllProgramLogics(self.tf_id)[0]
-        current_logic = all_logic_.getPhases()[all_logic_.currentPhaseIndex].state
-        number_veh_on_green_lanes = 0
-        number_veh_on_red_lanes = 0
-        for lane in self.lanes_unique:
-            idx = self.lanes.index(lane)
-            if current_logic[idx] in ['r', 'R']:
-                number_veh_on_red_lanes += traci.lane.getLastStepVehicleNumber(lane)
-            elif current_logic[idx] in ['g', 'G']:
-                number_veh_on_green_lanes += traci.lane.getLastStepVehicleNumber(lane)
-            else:
-                print("Error - do action during yellow phase")
-                sys.exit()
+        def get_number_vehicles_on_lane(vehs, lane_id):
+            n = 0
+            for veh in vehs:
+                if veh['lane'] == lane_id:
+                    n +=  1
+            return n
 
-        return number_veh_on_red_lanes, number_veh_on_green_lanes
+        phase_pressure = []
+        for idx, phase_des in enumerate(state['phase_description']):
+            if idx % 2 != 0:
+                continue
+            pressure = 0
+            approaching_lanes = []
+            outgoing_lanes = []
+            for item in phase_des:
+                if item['from'] not in approaching_lanes:
+                    pressure += get_number_vehicles_on_lane(state['vehicles'], item['from'])
+                    approaching_lanes.append(item['from'])
+                if item['to'] not in outgoing_lanes:
+                    pressure -= get_number_vehicles_on_lane(state['vehicles'], item['to'])
+                    outgoing_lanes.append(item['to'])
+            phase_pressure.append(pressure)
+
+        return phase_pressure
 
     def makeAction(self, state):
-        number_veh_on_red_lanes, number_veh_on_green_lanes = self.processState(state)
-        if (number_veh_on_red_lanes > number_veh_on_green_lanes):
-            return 1, [{'type': ActionType.CHANGE_TO_NEXT_PHASE, 'length': self.cycle_control, 'executed': False}]
-        return 0, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+        phase_pressure = self.processState(state)
+        action = np.argmax(phase_pressure)
+        if 2*action == state['current_phase_index']:
+            return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
+        return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}]

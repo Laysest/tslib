@@ -29,7 +29,7 @@ class SOTL(Controller):
         from traffic_light import LightState
         current_phase_index = state['current_phase_index']
         next_phase_index = state['current_phase_index'] + 2 if state['current_phase_index'] + 2 < self.number_of_phases else 0 
-
+        
         def get_light_states(phase_detail):
             light_states = {}
             for item in phase_detail:
@@ -37,8 +37,8 @@ class SOTL(Controller):
                     light_states[item['from']] = 0
                 if item['light_state'] == LightState.Green:
                     light_states[item['from']] += 1
-                else:
-                    light_states[item['from']] -= 1
+                # else:
+                #     light_states[item['from']] -= 1
             for key, val in light_states.items():
                 if light_states[key] > 0:
                     light_states[key] = LightState.Green

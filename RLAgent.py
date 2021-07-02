@@ -61,12 +61,10 @@ class RLAgent(Controller):
         action = np.argmax(out_)
         if 2*action == state['current_phase_index']:
             return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-        else:
-            return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}]
+        return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}]
 
     def randomAction(self, state):
         action = random.randint(0, self.output_space - 1)
         if 2*action == state['current_phase_index']:
             return action, [{'type': ActionType.KEEP_PHASE, 'length': self.cycle_control, 'executed': False}]
-        else:
-            return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}] 
+        return action, [{'type': ActionType.CHANGE_TO_PHASE, 'phase_index': action*2, 'length': self.cycle_control, 'executed': False}] 
