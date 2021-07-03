@@ -10,11 +10,14 @@ from Vehicle import Vehicle
 import pickle
 import os
 import threading
+import cityflow
 
 traci = GloVars.traci
 
 def replay_in_parallel(traffic_light):
     traffic_light.replay()
+
+last_vehs_id = []
 
 class Environment():
     def __init__(self, config):
@@ -59,35 +62,32 @@ class Environment():
                 self.vehicles[veh_id_].logStep(self.episode)
         GloVars.step += 1
     
-        
-    def getEdgesOfNode(self, tfl_id):
-        in_edges = []
-        out_edges = []
-        for edge in self.edges:
-            if edge.getToNode() == tfl_id:
-                in_edges.append(edge)
-
     def train(self):
         """
             To run a simulation based on the configurate
         """
-        if self.config["gui"]:
-            sumo_cmd = ["/usr/bin/sumo-gui"]
-        else:
-            sumo_cmd = ["/usr/bin/sumo"]
+        def startSimulation():
+            if GloVars.config['simulator'] == 'SUMO':
+                if self.config["gui"]:
+                    sumo_cmd = ["/usr/bin/sumo-gui"]
+                else:
+                    sumo_cmd = ["/usr/bin/sumo"]
 
-        sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
-                      "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
-        sumo_cmd.extend(sumo_config)
+                sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
+                            "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
+                sumo_cmd.extend(sumo_config)
+                traci.start(sumo_cmd)
+            elif GloVars.config['simulator'] == 'CityFlow':
+                eng = cityflow.Engine(config_file=GloVars.config['config_file'], thread_num=1)
+                GloVars.eng = eng 
 
-        # self.edges = str(sumolib.net.readNet('./traffic-sumo/%s' % self.config['net']).getEdges()
         pretrain_ = True
         ### Pre-train: ------------------------
         if pretrain_:
             self.episode = -1
-            traci.start(sumo_cmd)
+            startSimulation()
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
-            while traci.simulation.getMinExpectedNumber() > 0 and GloVars.step < self.config['end']:
+            while GloVars.step < self.config['end']:
                 self.update()
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=False, pretrain=True)

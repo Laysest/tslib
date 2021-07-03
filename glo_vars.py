@@ -25,3 +25,4 @@ class GloVars:
     traci = traci
     config = None
     vehicles = None
+    eng = None

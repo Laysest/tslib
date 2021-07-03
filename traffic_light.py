@@ -7,6 +7,7 @@ import sys
 import os
 from numpy.core.fromnumeric import sort
 import sumolib
+import json
 import tensorflow as tf
 import pandas as pd
 from SOTL import SOTL
@@ -42,8 +43,7 @@ class TrafficLight:
         self.yellow_duration = config['yellow_duration']
         self.cycle_control = config['cycle_control']
         self.folder = config['folder']
-        self.number_of_phases = len(traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases())
-        self.phase_description = self.getPhaseDescription()
+        self.number_of_phases, self.phase_description = self.getPhase()
         if self.number_of_phases % 2 != 0:
             print("<<< To ensure safety, must have a yellow phase after each changing phase >>>")
             sys.exit(0)
@@ -80,6 +80,66 @@ class TrafficLight:
 
          # this for  computing reward
         self.historical_data = None
+
+    def getPhase(self):
+        def getPhaseDescription(tfl_id):
+            if GloVars.config['simulator'] == 'SUMO':
+                phases = traci.trafficlight.getAllProgramLogics(tfl_id)[0].getPhases()
+                links = traci.trafficlight.getControlledLinks(tfl_id)
+                def map_phase_state(state):
+                    if state in ['r', 'R']:
+                        return LightState.Red
+                    if state in ['g', 'G']:
+                        return LightState.Green
+                    return LightState.Yellow
+                des = []
+                for idx, phase in enumerate(phases):
+                    tmp = []
+                    for link in links:
+                        tmp.append({
+                            'from': link[0][0],
+                            'to': link[0][1],
+                            'light_state': map_phase_state(phase.state[idx])
+                        })
+                    des.append(tmp)
+                return des
+            elif GloVars.config['simulator'] == 'CityFlow':
+                config_CF = json.load(open(GloVars.config['config_file'], 'r'))
+                road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
+                intersection = next(item for item in road_structure['intersections'] if item["id"] == tfl_id)
+                phases = intersection['trafficLight']['lightphases']
+                road_links = intersection['roadLinks']
+
+                des = []
+                for phase in phases:
+                    tmp = []
+                    for link_idx, link in enumerate(road_links):
+                        for lane_link in link['laneLinks']:
+                            if link_idx in phase['availableRoadLinks']:
+                                tmp.append({
+                                    'from': "%s_%d" % (link['startRoad'], lane_link['startLaneIndex']),
+                                    'to': "%s_%d" % (link['endRoad'], lane_link['endLaneIndex']),
+                                    'light_state': LightState.Green
+                                })
+                            else:
+                                tmp.append({
+                                    'from': "%s_%d" % (link['startRoad'], lane_link['startLaneIndex']),
+                                    'to': "%s_%d" % (link['endRoad'], lane_link['endLaneIndex']),
+                                    'light_state': LightState.Red
+                                })
+                    des.append(tmp)
+                return des
+                
+        def getNumberOfPhases(tfl_id):
+            if GloVars.config['simulator'] == 'SUMO':
+                return len(traci.trafficlight.getAllProgramLogics(id)[0].getPhases())            
+            elif GloVars.config['simulator'] == 'CityFlow':
+                config_CF = json.load(open(GloVars.config['config_file'], 'r'))
+                road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
+                intersection = next(item for item in road_structure['intersections'] if item["id"] == tfl_id)
+                return len(intersection['trafficLight']['lightphases'])
+
+        return getNumberOfPhases(self.id), getPhaseDescription(self.id)
 
     def setLogic(self):
         """
@@ -330,27 +390,6 @@ class TrafficLight:
                     road_structure['south_road_out'] = getLanesArray(edge)
 
         return road_structure
-
-    def getPhaseDescription(self):
-        phases = traci.trafficlight.getAllProgramLogics(self.id)[0].getPhases()
-        links = traci.trafficlight.getControlledLinks(self.id)
-        def map_phase_state(state):
-            if state in ['r', 'R']:
-                return LightState.Red
-            if state in ['g', 'G']:
-                return LightState.Green
-            return LightState.Yellow
-        des = []
-        for idx, phase in enumerate(phases):
-            tmp = []
-            for link in links:
-                tmp.append({
-                    'from': link[0][0],
-                    'to': link[0][1],
-                    'light_state': map_phase_state(phase.state[idx])
-                })
-            des.append(tmp)
-        return des
 
     def logStep(self, episode):
         log_ = {
