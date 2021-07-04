@@ -47,7 +47,12 @@ class Environment():
         def getDepartedAndArrivedVehiclesIDList():
             if GloVars.config['simulator'] == 'SUMO':
                 return traci.simulation.getDepartedIDList(), traci.simulation.getArrivedIDList()
-        
+            elif GloVars.config['simulator'] == 'CityFlow':
+                vehs_id = GloVars.eng.get_vehicles()
+                departed_list = [veh for veh in vehs_id if veh not in self.vehicles]
+                arrived_list = [veh for veh in self.vehicles if ((not self.vehicles[veh].isFinished()) and (veh not in vehs_id))]
+                return departed_list, arrived_list
+
         departed_list, arrived_list = getDepartedAndArrivedVehiclesIDList()
         for veh_id_ in departed_list:
             if veh_id_ not in self.vehicles:
@@ -62,44 +67,58 @@ class Environment():
                 self.vehicles[veh_id_].logStep(self.episode)
         GloVars.step += 1
     
+    @staticmethod
+    def startSimulation():
+        if GloVars.config['simulator'] == 'SUMO':
+            if self.config["gui"]:
+                sumo_cmd = ["/usr/bin/sumo-gui"]
+            else:
+                sumo_cmd = ["/usr/bin/sumo"]
+
+            sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
+                        "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
+            sumo_cmd.extend(sumo_config)
+            traci.start(sumo_cmd)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            eng = cityflow.Engine(config_file=GloVars.config['config_file'], thread_num=1)
+            GloVars.eng = eng 
+    @staticmethod
+    def nextStepSimulation():
+        if GloVars.config['simulator'] == 'SUMO':
+            traci.simulationStep()
+        elif GloVars.config['simulator'] == 'CityFlow':
+            GloVars.eng.next_step()
+    @staticmethod
+    def resetSimulation():
+        if GloVars.config['simulator'] == 'SUMO':
+            traci.start(sumo_cmd)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            GloVars.eng.reset()
+
     def train(self):
         """
             To run a simulation based on the configurate
         """
-        def startSimulation():
-            if GloVars.config['simulator'] == 'SUMO':
-                if self.config["gui"]:
-                    sumo_cmd = ["/usr/bin/sumo-gui"]
-                else:
-                    sumo_cmd = ["/usr/bin/sumo"]
-
-                sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
-                            "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
-                sumo_cmd.extend(sumo_config)
-                traci.start(sumo_cmd)
-            elif GloVars.config['simulator'] == 'CityFlow':
-                eng = cityflow.Engine(config_file=GloVars.config['config_file'], thread_num=1)
-                GloVars.eng = eng 
-
         pretrain_ = True
         ### Pre-train: ------------------------
         if pretrain_:
             self.episode = -1
-            startSimulation()
+            Environment.startSimulation()
             self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
             while GloVars.step < self.config['end']:
                 self.update()
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=False, pretrain=True)
-                    self.traffic_lights[i].logStep(self.episode)
-                traci.simulationStep()
+                    # self.traffic_lights[i].logStep(self.episode)
+                Environment.nextStepSimulation()
+
             self.close()
         #### ------------------------------------------
-
+        
         for e in range(50):
             self.episode = e
             print("Episode: %d" % e)
-            traci.start(sumo_cmd)
+            Environment.resetSimulation()
 
             # create traffic_lights just once
             if e == 0 and pretrain_ == False:
@@ -114,7 +133,7 @@ class Environment():
                 threads = {}
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].update(is_train=True)
-                    self.traffic_lights[i].logStep(self.episode)
+                    # self.traffic_lights[i].logStep(self.episode)
                     if count % GloVars.INTERVAL == 0:
                         threads[i] = threading.Thread(target=replay_in_parallel, args=(self.traffic_lights[i],))
                         threads[i].start()
@@ -122,7 +141,7 @@ class Environment():
                 if count % GloVars.INTERVAL == 0:
                     for i in range(len(self.traffic_lights)):
                         threads[i].join()
-                traci.simulationStep()
+                Environment.nextStepSimulation()
                 count += 1
             self.close(ep=e)
 
@@ -137,24 +156,26 @@ class Environment():
 
     def run(self):
         self.episode = -100
-        if self.config["gui"]:
-            sumo_cmd = ["/usr/bin/sumo-gui"]
-        else:
-            sumo_cmd = ["/usr/bin/sumo"]
+        # if self.config["gui"]:
+        #     sumo_cmd = ["/usr/bin/sumo-gui"]
+        # else:
+        #     sumo_cmd = ["/usr/bin/sumo"]
 
-        sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
-                      "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
-        sumo_cmd.extend(sumo_config)
-        traci.start(sumo_cmd)
+        # sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
+        #               "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
+        # sumo_cmd.extend(sumo_config)
+        # traci.start(sumo_cmd)
+        Environment.startSimulation()
         self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
         for tf in self.traffic_lights:
             tf.loadModel()
-        while traci.simulation.getMinExpectedNumber() > 0 and GloVars.step < self.config['end']:
+        while GloVars.step < self.config['end']:
             self.update()
             for i in range(len(self.traffic_lights)):
                 self.traffic_lights[i].update(is_train=False)
-                self.traffic_lights[i].logStep(self.episode)
-            traci.simulationStep()
+                # self.traffic_lights[i].logStep(self.episode)
+            Environment.nextStepSimulation()
+            # traci.simulationStep()
         self.close()
 
 
@@ -162,9 +183,10 @@ class Environment():
         """
             close simulation
         """
+        if GloVars.config['simulator'] == 'SUMO':
+            traci.close()
         self.evaluate(ep)
         self.reset()
-        traci.close()
 
     def evaluate(self, ep):
         """

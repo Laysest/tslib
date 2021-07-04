@@ -10,6 +10,7 @@ import sumolib
 import json
 import tensorflow as tf
 import pandas as pd
+import math
 from SOTL import SOTL
 from CDRL import CDRL
 from VFB import VFB
@@ -26,6 +27,8 @@ traci = GloVars.traci
 
 # TODO: change it to more general
 MAX_NUM_PHASE = 4
+
+MAX_WAY_OF_AN_INTERSECTION = 4
 
 class LightState:
     Green = 0
@@ -47,10 +50,6 @@ class TrafficLight:
         if self.number_of_phases % 2 != 0:
             print("<<< To ensure safety, must have a yellow phase after each changing phase >>>")
             sys.exit(0)
-        # self.lanes = []
-        # Create controller based on the algorithm configed
-
-        # new implement
         self.road_structure = self.getRoadStructure()
         self.lanes_id = []
         for road in self.road_structure.keys():
@@ -75,11 +74,17 @@ class TrafficLight:
             sys.exit(0)
 
         self.writer = tf.summary.create_file_writer('%s/%s-%s' % (self.folder, self.id, self.control_algorithm))
-        self.last_action, self.last_processed_state, self.last_state = None, None, None
+        self.last_action, self.last_processed_state, self.last_state, self.historical_data = None, None, None, None
+        self.current_phase_index = 0
         self.reset()
+        
 
-         # this for  computing reward
-        self.historical_data = None
+    def reset(self):
+        if self.control_algorithm != 'FixedTime':
+            self.setLogic()
+        self.control_actions = []
+        self.last_action, self.last_processed_state, self.last_state, self.historical_data = None, None, None, None
+        self.current_phase_index = 0
 
     def getPhase(self):
         def getPhaseDescription(tfl_id):
@@ -132,7 +137,7 @@ class TrafficLight:
                 
         def getNumberOfPhases(tfl_id):
             if GloVars.config['simulator'] == 'SUMO':
-                return len(traci.trafficlight.getAllProgramLogics(id)[0].getPhases())            
+                return len(traci.trafficlight.getAllProgramLogics(tfl_id)[0].getPhases())            
             elif GloVars.config['simulator'] == 'CityFlow':
                 config_CF = json.load(open(GloVars.config['config_file'], 'r'))
                 road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
@@ -147,26 +152,64 @@ class TrafficLight:
             Set logic program for the traffic light
             Restart the logic at phase 0
         """
-        traci.trafficlight.setPhase(self.id, 0)
-        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        if GloVars.config['simulator'] == 'SUMO':
+            traci.trafficlight.setPhase(self.id, 0)
+            traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
         
     def getRoadStructure(self):
-        center_node = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(self.id)
-        incoming_nodes = center_node.getNeighboringNodes(incomingNodes=True)
+        class Node:
+            node_id = None
+            x = None   
+            y = None
+
+        def getNodes(tfl_id):
+            if GloVars.config['simulator'] == 'SUMO':
+                center = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net']).getNode(tfl_id)
+                center_node = Node()
+                center_node.node_id, (center_node.x, center_node.y) = tfl_id, center.getCoord()
+                incoming = center.getNeighboringNodes(incomingNodes=True)
+                incoming_nodes = []
+                for item in incoming:
+                    tmp = Node()
+                    tmp.node_id, (tmp.x, tmp.y) = item.getID(), item.getCoord()
+                    incoming_nodes.append(tmp)
+            elif GloVars.config['simulator'] == 'CityFlow':
+                config_CF = json.load(open(GloVars.config['config_file'], 'r'))
+                road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
+                intersection = next(item for item in road_structure['intersections'] if item["id"] == tfl_id)
+                center_node = Node()
+                center_node.node_id, center_node.x, center_node.y = intersection['id'], intersection['point']['x'], intersection['point']['y']
+                
+                start_roads_id = []
+                for link in intersection['roadLinks']:
+                    if link['startRoad'] not in start_roads_id:
+                        start_roads_id.append(link['startRoad'])
+                incoming_nodes = []
+                for road_id in start_roads_id:
+                    for road in road_structure['roads']:
+                        if road['id'] == road_id:
+                            available_nodes_id = [node.node_id for node in incoming_nodes]
+                            if road['startIntersection'] in available_nodes_id:
+                                break
+                            tmp = Node()
+                            tmp.node_id, tmp.x, tmp.y = road['startIntersection'], road['points'][0]['x'], road['points'][0]['y']
+                            incoming_nodes.append(tmp)
+                            break
+            return center_node, incoming_nodes
+        
+        center_node, incoming_nodes = getNodes(self.id)
         sorted_nodes = []
         if len(incoming_nodes) > 4:
             print("<<<Currently TSlib supports only maximum 4-way intersection>>>")
             sys.exit(0)
-        
-        center_x, center_y = center_node.getCoord()
+
         if len(incoming_nodes) == 4:
             # find West node
             min_distance, selected_node = -1, None
             for node in incoming_nodes:
-                x, y = node.getCoord()
-                if x < center_x:
-                    if min_distance == -1 or abs(center_y - y) < min_distance:
-                        min_distance = abs(center_y - y)
+                if node.x < center_node.x:
+                    if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                        min_distance = abs(center_node.y - node.y)
                         selected_node = node
             incoming_nodes.remove(selected_node)
             sorted_nodes.append(selected_node)
@@ -174,10 +217,9 @@ class TrafficLight:
             # find North node
             min_distance, selected_node = -1, None
             for node in incoming_nodes:
-                x, y = node.getCoord()
-                if y > center_y:
-                    if min_distance == -1 or abs(center_x - x) < min_distance:
-                        min_distance = abs(center_x - x)
+                if node.y > center_node.y:
+                    if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                        min_distance = abs(center_node.x - node.x)
                         selected_node = node
             incoming_nodes.remove(selected_node)
             sorted_nodes.append(selected_node)
@@ -185,10 +227,9 @@ class TrafficLight:
             #find East node
             min_distance, selected_node = -1, None
             for node in incoming_nodes:
-                x, y = node.getCoord()
-                if x > center_x:
-                    if min_distance == -1 or abs(center_y - y) < min_distance:
-                        min_distance = abs(center_y - y)
+                if node.x > center_node.x:
+                    if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                        min_distance = abs(center_node.y - node.y)
                         selected_node = node
             incoming_nodes.remove(selected_node)
             sorted_nodes.append(selected_node)
@@ -196,10 +237,9 @@ class TrafficLight:
             # find South node
             min_distance, selected_node = -1, None
             for node in incoming_nodes:
-                x, y = node.getCoord()
-                if y < center_y:
-                    if min_distance == -1 or abs(center_x - x) < min_distance:
-                        min_distance = abs(center_x - x)
+                if node.y < center_node.y:
+                    if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                        min_distance = abs(center_node.x - node.x)
                         selected_node = node
             incoming_nodes.remove(selected_node)
             sorted_nodes.append(selected_node)
@@ -215,13 +255,12 @@ class TrafficLight:
             flag_N, flag_S = False, False
 
             for node in incoming_nodes:
-                x, y = node.getCoord()
-                if x < center_x:
+                if node.x < center_node.x:
                     flag_W = True
                 else:
                     flag_E = True
 
-                if y > center_y:
+                if node.y > center_node.y:
                     flag_N = True
                 else:
                     flag_S = True
@@ -229,10 +268,9 @@ class TrafficLight:
                 if flag_W:
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if x < center_x:
-                            if min_distance == -1 or abs(center_y - y) < min_distance:
-                                min_distance = abs(center_y - y)
+                        if node.x < center_node.x:
+                            if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                                min_distance = abs(center_node.y - node.y)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -242,10 +280,9 @@ class TrafficLight:
                 if flag_N:
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if y > center_y:
-                            if min_distance == -1 or abs(center_x - x) < min_distance:
-                                min_distance = abs(center_x - x)
+                        if node.y > center_node.y:
+                            if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                                min_distance = abs(center_node.x - node.x)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -255,10 +292,9 @@ class TrafficLight:
                 if flag_E:
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if x > center_x:
-                            if min_distance == -1 or abs(center_y - y) < min_distance:
-                                min_distance = abs(center_y - y)
+                        if node.x > center_node.x:
+                            if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                                min_distance = abs(center_node.y - node.y)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -268,10 +304,9 @@ class TrafficLight:
                 if flag_S:
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if y < center_y:
-                            if min_distance == -1 or abs(center_x - x) < min_distance:
-                                min_distance = abs(center_x - x)
+                        if node.y < center_node.y:
+                            if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                                min_distance = abs(center_node.x - node.x)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -282,19 +317,17 @@ class TrafficLight:
                 distance_to_W_E = []
                 distance_to_N_S = []
                 for node in incoming_nodes:
-                    x, y = node.getCoord()
-                    distance_to_W_E.append(abs(y-center_y))
-                    distance_to_N_S.append(abs(x-center_x))
+                    distance_to_W_E.append(abs(node.y-center_node.y))
+                    distance_to_N_S.append(abs(node.x-center_node.x))
                 distance_to_W_E = sorted(distance_to_W_E)
                 distance_to_N_S = sorted(distance_to_N_S)
                 if distance_to_W_E < distance_to_N_S:
                     # find West node
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if x < center_x:
-                            if min_distance == -1 or abs(center_y - y) < min_distance:
-                                min_distance = abs(center_y - y)
+                        if node.x < center_node.x:
+                            if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                                min_distance = abs(center_node.y - node.y)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -302,16 +335,14 @@ class TrafficLight:
                     #find East node
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if x > center_x:
-                            if min_distance == -1 or abs(center_y - y) < min_distance:
-                                min_distance = abs(center_y - y)
+                        if node.x > center_node.x:
+                            if min_distance == -1 or abs(center_node.y - node.y) < min_distance:
+                                min_distance = abs(center_node.y - node.y)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
 
-                    x, y = incoming_nodes[0].getCoord()
-                    if y > center_y:
+                    if incoming_nodes[0].y > center_node.y:
                         # the last node is North
                         sorted_nodes.insert(1, incoming_nodes[0])
                         sorted_nodes.append(None)
@@ -324,10 +355,9 @@ class TrafficLight:
                     # find North node
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if y > center_y:
-                            if min_distance == -1 or abs(center_x - x) < min_distance:
-                                min_distance = abs(center_x - x)
+                        if node.y > center_node.y:
+                            if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                                min_distance = abs(center_node.x - node.x)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
@@ -335,16 +365,14 @@ class TrafficLight:
                     # find South node
                     min_distance, selected_node = -1, None
                     for node in incoming_nodes:
-                        x, y = node.getCoord()
-                        if y < center_y:
-                            if min_distance == -1 or abs(center_x - x) < min_distance:
-                                min_distance = abs(center_x - x)
+                        if node.y < center_node.y:
+                            if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+                                min_distance = abs(center_node.x - node.x)
                                 selected_node = node
                     incoming_nodes.remove(selected_node)
                     sorted_nodes.append(selected_node)
 
-                    x, y = incoming_nodes[0].getCoord()
-                    if x < center_x:
+                    if node.x < center_node.x:
                         # the last node is West
                         sorted_nodes.insert(0, incoming_nodes[0])
                         sorted_nodes.insert(2, None)
@@ -353,45 +381,67 @@ class TrafficLight:
                         sorted_nodes.insert(0, None)
                         sorted_nodes.insert(2, incoming_nodes[0])
 
-        def getLanesArray(edge):
-            return [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed(), 'light_state': None} for lane in edge.getLanes()]
+        def getLanesArray(node, center_node):
+            in_lanes_info, out_lanes_info = None, None
+            if GloVars.config['simulator'] == 'SUMO':
+                net = sumolib.net.readNet('./traffic-sumo/%s' % GloVars.config['net'])
+                node_ = net.getNode(node.node_id)
+                center_node_ = net.getNode(center_node.node_id)
+                edges = node_.getOutgoing() 
+                edges += node_.getIncoming()
+                for edge in edges:
+                    if edge.getToNode() == center_node_:
+                        in_lanes_info = [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()} for lane in edge.getLanes()]
+                    if edge.getFromNode() == center_node_:
+                        out_lanes_info = [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()} for lane in edge.getLanes()]
+            elif GloVars.config['simulator'] == 'CityFlow':
+                config_CF = json.load(open(GloVars.config['config_file'], 'r'))
+                road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
+                for road in road_structure['roads']:
+                    if road['startIntersection'] == node.node_id and road['endIntersection'] == center_node.node_id:
+                        distance = math.sqrt((road['points'][0]['x'] - road['points'][1]['x'])**2 + (road['points'][0]['y'] - road['points'][1]['y'])**2)
+                        in_lanes_info = []
+                        for idx, lane in enumerate(road['lanes']):
+                            in_lanes_info.append({
+                                'id': "%s_%d" % (road['id'], idx),
+                                'length': distance,
+                                'max_allowed_speed': float(lane['maxSpeed'])
+                            })
+                    if road['startIntersection'] == center_node.node_id and road['endIntersection'] == node.node_id:
+                        distance = math.sqrt((road['points'][0]['x'] - road['points'][1]['x'])**2 + (road['points'][0]['y'] - road['points'][1]['y'])**2)
+                        out_lanes_info = []
+                        for idx, lane in enumerate(road['lanes']):
+                            out_lanes_info.append({
+                                'id': "%s_%d" % (road['id'], idx),
+                                'length': distance,
+                                'max_allowed_speed': lane['maxSpeed']
+                            })
+            return in_lanes_info, out_lanes_info
 
         road_structure = {}
         if sorted_nodes[0] != None:
-            edges = sorted_nodes[0].getOutgoing()
-            for edge in edges:
-                if edge.getToNode() == center_node:
-                    road_structure['west_road_in'] = getLanesArray(edge)
-                if edge.getFromNode() == center_node:
-                    road_structure['west_road_out'] = getLanesArray(edge)
-
+            road_structure['west_road_in'], road_structure['west_road_out'] =  getLanesArray(sorted_nodes[0], center_node)
         if sorted_nodes[1] != None:
-            edges = sorted_nodes[1].getOutgoing()
-            for edge in edges:
-                if edge.getToNode() == center_node:
-                    road_structure['north_road_in'] = getLanesArray(edge)
-                if edge.getFromNode() == center_node:
-                    road_structure['north_road_out'] = getLanesArray(edge)
-
+            road_structure['north_road_in'], road_structure['north_road_out'] =  getLanesArray(sorted_nodes[1], center_node)
         if sorted_nodes[2] != None:
-            edges = sorted_nodes[2].getOutgoing()
-            for edge in edges:
-                if edge.getToNode() == center_node:
-                    road_structure['east_road_in'] = getLanesArray(edge)
-                if edge.getFromNode() == center_node:
-                    road_structure['east_road_out'] = getLanesArray(edge)
-
+            road_structure['east_road_in'], road_structure['east_road_out'] =  getLanesArray(sorted_nodes[2], center_node)
         if sorted_nodes[3] != None:
-            edges = sorted_nodes[3].getOutgoing()
-            for edge in edges:
-                if edge.getToNode() == center_node:
-                    road_structure['south_road_in'] = getLanesArray(edge)
-                if edge.getFromNode() == center_node:
-                    road_structure['south_road_out'] = getLanesArray(edge)
+            road_structure['south_road_in'], road_structure['south_road_out'] =  getLanesArray(sorted_nodes[3], center_node)
 
         return road_structure
 
     def logStep(self, episode):
+        def getQueueLength(self):
+            queue_length = [];
+            for lane in self.lanes_id:
+                q = 0
+                vehs = traci.lane.getLastStepVehicleIDs(lane)
+                for veh in vehs:
+                    if traci.vehicle.getSpeed(veh) < 5:
+                        q += traci.vehicle.getLength(veh)
+                queue_length.append(q)
+            return queue_length
+
         log_ = {
             'ep': episode,
             'step': GloVars.step,
@@ -416,24 +466,7 @@ class TrafficLight:
         else: # else it exists so append without writing the header
             df.to_csv(log_folder, mode='a', header=False, index=False)
 
-    def getQueueLength(self):
-        queue_length = [];
-        for lane in self.lanes_id:
-            q = 0
-            vehs = traci.lane.getLastStepVehicleIDs(lane)
-            for veh in vehs:
-                if traci.vehicle.getSpeed(veh) < 5:
-                    q += traci.vehicle.getLength(veh)
-            queue_length.append(q)
-        return queue_length
         
-    def reset(self):
-        if self.control_algorithm != 'FixedTime':
-            self.setLogic()
-        self.control_actions = []
-        self.last_action, self.last_processed_state, self.last_state = None, None, None
-        self.historical_data = None
-
     def getState(self):
         """
             return the current state of the intersection:
@@ -456,18 +489,35 @@ class TrafficLight:
             }
         """
         vehs = []
-        for lane in self.lanes_id:
-            for veh in traci.lane.getLastStepVehicleIDs(lane):
-                vehs.append({
-                    'id': veh,
-                    'lane': lane,
-                    'distance_from_lane_start': traci.vehicle.getLanePosition(veh),
-                    'speed': traci.vehicle.getSpeed(veh),
-                    'max_speed': traci.vehicle.getMaxSpeed(veh),
-                    'length': traci.vehicle.getLength(veh),
-                    'waiting_time': traci.vehicle.getWaitingTime(veh)
-                })
-        current_phase_index = traci.trafficlight.getPhase(self.id)
+        if GloVars.config['simulator'] == "SUMO":
+            for lane in self.lanes_id:
+                for veh in traci.lane.getLastStepVehicleIDs(lane):
+                    vehs.append({
+                        'id': veh,
+                        'lane': lane,
+                        'distance_from_lane_start': traci.vehicle.getLanePosition(veh),
+                        'speed': traci.vehicle.getSpeed(veh),
+                        'max_speed': traci.vehicle.getMaxSpeed(veh),
+                        'length': traci.vehicle.getLength(veh),
+                        'waiting_time': traci.vehicle.getWaitingTime(veh)
+                    })
+            current_phase_index = traci.trafficlight.getPhase(self.id)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            vehs_id = GloVars.eng.get_vehicles()
+            for lane_id in self.lanes_id:
+                for veh_id in vehs_id:
+                    veh = GloVars.eng.get_vehicle_info(veh_id)
+                    if veh['drivable'] == lane_id:
+                        vehs.append({
+                            'id': veh_id,
+                            'lane': lane_id,
+                            'distance_from_lane_start': float(veh['distance']),
+                            'speed': float(veh['speed']),
+                            'length': 5, #TODO CityFlow has not supported,
+                            'max_speed': 11.11, #TODO CityFlow has not supported,
+                            'waiting_time': 0 #TODO CityFlow has not supported,
+                        })
+            current_phase_index = self.current_phase_index
 
         return {
             'road_structure': self.road_structure,
@@ -489,23 +539,38 @@ class TrafficLight:
             elif action['type'] == ActionType.KEEP_PHASE:
                 self.control_actions.extend([{'type': ActionType.KEEP_PHASE, 'length': action['length'], 'executed': False}])
             else:
-                print("error in processControlStack")
+                print("<<< error in processControlStack >>>")
                 sys.exit()
 
     def changeToNextPhase(self):
         """
             Call this function to change the traffic light to the next phase
         """
-        current_phase_ = traci.trafficlight.getPhase(self.id)
-        if current_phase_ >= MAX_NUM_PHASE - 1:
-            traci.trafficlight.setPhase(self.id, 0)
-        else:
-            traci.trafficlight.setPhase(self.id, current_phase_ + 1)
-        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        if GloVars.config['simulator'] == 'SUMO':
+            current_phase_ = traci.trafficlight.getPhase(self.id)
+            if current_phase_ >= self.number_of_phases - 1:
+                traci.trafficlight.setPhase(self.id, 0)
+                self.current_phase_index = 0
+            else:
+                traci.trafficlight.setPhase(self.id, current_phase_ + 1)
+                self.current_phase_index += 1
+            traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            current_phase_ = self.current_phase_index
+            if current_phase_ >= self.number_of_phases - 1:
+                GloVars.eng.set_tl_phase(self.id, 0)
+                self.current_phase_index = 0
+            else:
+                GloVars.eng.set_tl_phase(self.id, current_phase_ + 1)
+                self.current_phase_index += 1
 
     def changeToPhase(self, phase_idx):
-        traci.trafficlight.setPhase(self.id, phase_idx)
-        traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        if GloVars.config['simulator'] == 'SUMO':
+            traci.trafficlight.setPhase(self.id, phase_idx)
+            traci.trafficlight.setPhaseDuration(self.id, MAX_INT)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            GloVars.eng.set_tl_phase(self.id, phase_idx)
+            self.current_phase_index += 1
 
     def doAction(self):
         """

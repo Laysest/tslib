@@ -10,27 +10,46 @@ traci = GloVars.traci
 class Vehicle:
     def __init__(self, vehID):
         self.id = vehID
-        self.type = traci.vehicle.getTypeID(self.id)
-        self.route = traci.vehicle.getRoute(self.id)
         self.now = GloVars.step
         self.start_time = self.now
         self.finish_time = 0
-
-        lane_ = traci.vehicle.getLaneID(self.id)
-        self.status = {
-            'lane': lane_,
-            'speed': traci.vehicle.getSpeed(self.id),
-            'CO2_emission': traci.vehicle.getCO2Emission(self.id),
-            'CO_emission': traci.vehicle.getCOEmission(self.id),
-            'fuel_consumption': traci.vehicle.getFuelConsumption(self.id),
-            'waiting_time': traci.vehicle.getAccumulatedWaitingTime(self.id),
-            'distance': traci.vehicle.getDistance(self.id),
-            'route': [{
-                        'edge': lane_[:-2],
-                        'first_time_step': self.now,
-                        'last_time_step': self.now
-            }]
-        }
+        if GloVars.config['simulator'] == 'SUMO':
+            self.type = traci.vehicle.getTypeID(self.id)
+            self.route = traci.vehicle.getRoute(self.id)
+            lane_ = traci.vehicle.getLaneID(self.id)
+            self.status = {
+                'lane': lane_,
+                'speed': traci.vehicle.getSpeed(self.id),
+                'CO2_emission': traci.vehicle.getCO2Emission(self.id),
+                'CO_emission': traci.vehicle.getCOEmission(self.id),
+                'fuel_consumption': traci.vehicle.getFuelConsumption(self.id),
+                'waiting_time': traci.vehicle.getAccumulatedWaitingTime(self.id),
+                'distance': traci.vehicle.getDistance(self.id),
+                'route': [{
+                            'edge': lane_[:-2],
+                            'first_time_step': self.now,
+                            'last_time_step': self.now
+                }]
+            }
+        elif GloVars.config['simulator'] == 'CityFlow':
+            self.type = 'Nan'
+            veh = GloVars.eng.get_vehicle_info(vehID)
+            self.route = veh['route'][:-1].split(" ")
+            lane_ = veh['drivable']
+            self.status = {
+                'lane': lane_,
+                'speed': float(veh['speed']),
+                'CO2_emission': 0,
+                'CO_emission': 0,
+                'fuel_consumption': 0,
+                'waiting_time': 0,
+                'distance': 0,
+                'route': [{
+                            'edge': lane_[:-2],
+                            'first_time_step': self.now,
+                            'last_time_step': self.now
+                }]
+            }
 
         self.log = {
             'total_speed': 0,
@@ -42,7 +61,24 @@ class Vehicle:
 
     def update(self):
         self.updateTime()
-        lane = traci.vehicle.getLaneID(self.id)
+        if GloVars.config['simulator'] == 'SUMO':
+            lane = traci.vehicle.getLaneID(self.id)
+            speed = traci.vehicle.getSpeed(self.id)
+            CO2_emission = traci.vehicle.getCO2Emission(self.id)
+            CO_emission = traci.vehicle.getCOEmission(self.id)
+            fuel_consumption = traci.vehicle.getFuelConsumption(self.id)
+            waiting_time = traci.vehicle.getAccumulatedWaitingTime(self.id)
+            distance = traci.vehicle.getDistance(self.id)
+        elif GloVars.config['simulator'] == 'CityFlow':
+            veh_ = GloVars.eng.get_vehicle_info(self.id)
+            lane = veh_['drivable']
+            speed = float(veh_['speed'])
+            CO2_emission = 0
+            CO_emission = 0
+            fuel_consumption = 0
+            waiting_time = 0
+            distance = 0
+
         last_route = self.status['route'].copy()
         edge = lane[:-2]
         route = {}
@@ -60,18 +96,14 @@ class Vehicle:
             })
             route = last_route
 
-        speed = traci.vehicle.getSpeed(self.id)
-        CO2_emission = traci.vehicle.getCO2Emission(self.id)
-        CO_emission = traci.vehicle.getCOEmission(self.id)
-        fuel_consumption = traci.vehicle.getFuelConsumption(self.id)
         self.status = {
             'lane': lane,
             'speed': speed,
             'CO2_emission': CO2_emission,
             'CO_emission': CO2_emission,
             'fuel_consumption': fuel_consumption,
-            'waiting_time': traci.vehicle.getAccumulatedWaitingTime(self.id),
-            'distance': traci.vehicle.getDistance(self.id),
+            'waiting_time': waiting_time,
+            'distance': distance,
             'route': route
         }
 

@@ -115,9 +115,10 @@ config = {
     'traffic_lights': [
         {'node_id': 'intersection_1_1', 'method': 'VFB',  'yellow_duration': 1, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'}
     ],
+    'log_folder': './log/dev/testbed-a-hour/VFB',
     'end': 3600
 }
 
 
 sim = TSLib(config)
-sim.train()
+sim.run()
