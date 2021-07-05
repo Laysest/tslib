@@ -156,15 +156,6 @@ class Environment():
 
     def run(self):
         self.episode = -100
-        # if self.config["gui"]:
-        #     sumo_cmd = ["/usr/bin/sumo-gui"]
-        # else:
-        #     sumo_cmd = ["/usr/bin/sumo"]
-
-        # sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % self.config['net'], '-r', './traffic-sumo/%s' % self.config['route'], 
-        #               "-a", "./traffic-sumo/%s" % self.config['veh_type'], "-e", str(self.config['end'])]
-        # sumo_cmd.extend(sumo_config)
-        # traci.start(sumo_cmd)
         Environment.startSimulation()
         self.traffic_lights = [TrafficLight(config=tl) for tl in self.config['traffic_lights']]
         for tf in self.traffic_lights:
@@ -175,7 +166,8 @@ class Environment():
                 self.traffic_lights[i].update(is_train=False)
                 # self.traffic_lights[i].logStep(self.episode)
             Environment.nextStepSimulation()
-            # traci.simulationStep()
+            if GloVars.step % 100 == 0:
+                print(GloVars.step)
         self.close()
 
 

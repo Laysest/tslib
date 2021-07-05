@@ -244,10 +244,10 @@ class IntelliLight(RLAgent):
     @staticmethod
     def logHistoricalData(state, action):
         historical_data = {}
-        if action == ActionType.CHANGE_TO_NEXT_PHASE:
-            historical_data['last_action_is_change'] = 1
-        else:
+        if action == ActionType.KEEP_PHASE:
             historical_data['last_action_is_change'] = 0
+        else:
+            historical_data['last_action_is_change'] = 1
         historical_data['vehicles'] = state['vehicles']
 
         return historical_data

@@ -113,9 +113,9 @@ config = {
     'config_file': './traffic-cityflow/isolated-intersection/hz-bc-tyc_1/config.json',
     'simulator': 'CityFlow',
     'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'VFB',  'yellow_duration': 1, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'}
+        {'node_id': 'intersection_1_1', 'method': 'MaxPressure',  'yellow_duration': 1, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'}
     ],
-    'log_folder': './log/dev/testbed-a-hour/VFB',
+    'log_folder': './log/dev/testbed-a-hour/MaxPressure',
     'end': 3600
 }
 
