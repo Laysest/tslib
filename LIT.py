@@ -14,7 +14,6 @@ from VFB import VFB
 
 class LIT(RLAgent):
     def __init__(self, config, road_structure, number_of_phases):
-        # self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
         self.incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
         RLAgent.__init__(self, config['cycle_control'], len(self.incoming_lanes), 2)
 
@@ -59,7 +58,7 @@ class LIT(RLAgent):
     @staticmethod
     def computeReward(state, historical_data):
         L = 0
-        incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
+        incoming_lanes = [lane for k, road in state['road_structure'].items() if 'in' in k for lane in road]
         for lane in incoming_lanes:
             for veh in state['vehicles']:
                 if veh['lane'] == lane['id'] and veh['speed'] < 5:
