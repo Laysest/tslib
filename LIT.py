@@ -104,8 +104,8 @@ class LIT(RLAgent):
             state_as_input_ = [np.array([state_[0]]), np.array([state_[1]])]
             target_f = self.model.predict(state_as_input_)
             target_f[0][action_] = target
-            batch_lane_features.append(state_[1])
-            batch_phases.append(state_[2][0])
+            batch_lane_features.append(state_[0])
+            batch_phases.append(state_[1][0])
             batch_targets.append(target_f[0])
 
         self.model.fit([np.array(batch_lane_features), np.array(batch_phases)], np.array(batch_targets), 
