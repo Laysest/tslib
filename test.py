@@ -96,29 +96,29 @@ from tslib import TSLib
 #     'gui': False,
 # }
 
+config = {
+    'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
+    'veh_type': 'type.xml',
+    'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
+    'end': 3600,
+    'traffic_lights': [
+        {'node_id': 'gneJ1', 'method': 'LIT', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/LIT'},
+    ],
+    'log_folder': './log/dev/testbed-a-hour/LIT',
+    'simulator': 'SUMO',
+    'gui': False,
+}
+
 # config = {
-#     'net': 'isolated-intersection/testbed-a-hour/road.net.xml',
-#     'veh_type': 'type.xml',
-#     'route': 'isolated-intersection/testbed-a-hour/flow.route.xml',
-#     'end': 3600,
+#     'config_file': './traffic-cityflow/isolated-intersection/hz-bc-tyc_1/config.json',
+#     'simulator': 'CityFlow',
 #     'traffic_lights': [
-#         {'node_id': 'gneJ1', 'method': 'MaxPressure', 'yellow_duration': 3, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'},
+#         {'node_id': 'intersection_1_1', 'method': 'MaxPressure',  'yellow_duration': 1, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'}
 #     ],
 #     'log_folder': './log/dev/testbed-a-hour/MaxPressure',
-#     'simulator': 'SUMO',
-#     'gui': False,
+#     'end': 3600
 # }
-
-config = {
-    'config_file': './traffic-cityflow/isolated-intersection/hz-bc-tyc_1/config.json',
-    'simulator': 'CityFlow',
-    'traffic_lights': [
-        {'node_id': 'intersection_1_1', 'method': 'MaxPressure',  'yellow_duration': 1, 'cycle_control': 5, 'folder': './model/dev/testbed-a-hour/MaxPressure'}
-    ],
-    'log_folder': './log/dev/testbed-a-hour/MaxPressure',
-    'end': 3600
-}
 
 
 sim = TSLib(config)
-sim.run()
+sim.train()

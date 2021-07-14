@@ -5,8 +5,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D, Concatenate
 from tensorflow.keras.optimizers import Adam
 import numpy as np
-np.set_printoptions(threshold=np.inf)
-
 import math
 import sumolib
 import sys
@@ -200,9 +198,6 @@ class IntelliLight(RLAgent):
 
         return lane_features_
     
-    def actionType(self):
-        return ActionType.CHANGING_KEEPING
-
     def replay(self):
         if self.exp_memory.len() < GloVars.SAMPLE_SIZE:
             return
