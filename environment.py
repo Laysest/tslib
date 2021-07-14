@@ -68,10 +68,6 @@ class Environment():
         GloVars.step += 1
     
     @staticmethod
-    def getCmd():
-        
-
-    @staticmethod
     def startSimulation():
         if GloVars.config['simulator'] == 'SUMO':
             if GloVars.config['gui']:
