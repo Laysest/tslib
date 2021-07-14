@@ -68,6 +68,10 @@ class Environment():
         GloVars.step += 1
     
     @staticmethod
+    def getCmd():
+        
+
+    @staticmethod
     def startSimulation():
         if GloVars.config['simulator'] == 'SUMO':
             if GloVars.config['gui']:
@@ -93,6 +97,14 @@ class Environment():
     @staticmethod
     def resetSimulation():
         if GloVars.config['simulator'] == 'SUMO':
+            if GloVars.config['gui']:
+                sumo_cmd = ["/usr/bin/sumo-gui"]
+            else:
+                sumo_cmd = ["/usr/bin/sumo"]
+
+            sumo_config = ["-c", "./traffic-sumo/network.sumocfg", '-n', './traffic-sumo/%s' % GloVars.config['net'], '-r', './traffic-sumo/%s' % GloVars.config['route'], 
+                        "-a", "./traffic-sumo/%s" % GloVars.config['veh_type'], "-e", str(GloVars.config['end'])]
+            sumo_cmd.extend(sumo_config)
             traci.start(sumo_cmd)
         elif GloVars.config['simulator'] == 'CityFlow':
             GloVars.eng.reset()
