@@ -110,3 +110,7 @@ class LIT(RLAgent):
 
         self.model.fit([np.array(batch_lane_features), np.array(batch_phases)], np.array(batch_targets), 
                             epochs=GloVars.EPOCHS, batch_size=GloVars.BATCH_SIZE, shuffle=False, verbose=0, validation_split=0.3)
+
+    @staticmethod
+    def logHistoricalData(state, action):
+        return {}
