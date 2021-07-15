@@ -137,7 +137,7 @@ class Environment():
                 for i in range(len(self.traffic_lights)):
                     self.traffic_lights[i].reset()
             count = 1
-            while traci.simulation.getMinExpectedNumber() > 0 and GloVars.step < self.config['end']:
+            while GloVars.step < self.config['end']:
                 self.update()
                 GloVars.step += 1
                 threads = {}
