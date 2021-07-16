@@ -77,9 +77,7 @@ class Vehicle:
             CO_emission = 0
             fuel_consumption = 0
             distance = 0
-            if speed >= 0.1:
-                waiting_time = 0
-            else:
+            if speed < 0.1:
                 waiting_time = self.status['waiting_time'] + 1
 
         last_route = self.status['route'].copy()
