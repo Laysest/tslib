@@ -135,3 +135,4 @@ model/*
 tensorboard/
 *.pkl
 log/dev/
+test.py
