@@ -37,8 +37,7 @@ class SOTL(Controller):
                     light_states[item['from']] = 0
                 if item['light_state'] == LightState.Green:
                     light_states[item['from']] += 1
-                # else:
-                #     light_states[item['from']] -= 1
+
             for key, val in light_states.items():
                 if light_states[key] > 0:
                     light_states[key] = LightState.Green

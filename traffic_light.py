@@ -19,6 +19,7 @@ from LIT import LIT
 from TLCC import TLCC
 from FixedTime import FixedTime
 from MaxPressure import MaxPressure
+from CAREL import CAREL
 from glo_vars import GloVars
 from controller import ActionType, Controller
 
@@ -72,6 +73,9 @@ class TrafficLight:
             self.controller = FixedTime(config=config, tfl_id=self.id)
         elif self.control_algorithm == 'MaxPressure':
             self.controller = MaxPressure(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
+        elif self.control_algorithm == 'CAREL':
+            self.controller = CAREL(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
+
         else:
             print("<<< Must implement %s >>>" % self.control_algorithm)
             sys.exit(0)
@@ -468,8 +472,7 @@ class TrafficLight:
             df.to_csv(log_folder, header='column_names', index=False)
         else: # else it exists so append without writing the header
             df.to_csv(log_folder, mode='a', header=False, index=False)
-
-        
+   
     def getState(self):
         """
             return the current state of the intersection:

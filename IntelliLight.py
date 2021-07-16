@@ -179,8 +179,6 @@ class IntelliLight(RLAgent):
                 light_state[item['from']] = 0
             if item['light_state'] == LightState.Green:
                 light_state[item['from']] += 1
-            else:
-                light_state[item['from']] -= 1
 
         for lane in self.incoming_lanes:
             if light_state[lane['id']] > 0:
