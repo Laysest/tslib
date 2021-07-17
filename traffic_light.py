@@ -16,6 +16,7 @@ from CDRL import CDRL
 from VFB import VFB
 from IntelliLight import IntelliLight
 from LIT import LIT
+from LITP import LITP
 from TLCC import TLCC
 from FixedTime import FixedTime
 from MaxPressure import MaxPressure
@@ -67,6 +68,8 @@ class TrafficLight:
             self.controller = IntelliLight(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'LIT':
             self.controller = LIT(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
+        elif self.control_algorithm == 'LITP':
+            self.controller = LITP(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'TLCC':
             self.controller = TLCC(config=config, road_structure=self.road_structure, number_of_phases=self.number_of_phases)
         elif self.control_algorithm == 'FixedTime':
