@@ -18,6 +18,7 @@ class Vehicle:
             self.route = traci.vehicle.getRoute(self.id)
             lane_ = traci.vehicle.getLaneID(self.id)
             self.status = {
+                'id': self.id,
                 'lane': lane_,
                 'speed': traci.vehicle.getSpeed(self.id),
                 'CO2_emission': traci.vehicle.getCO2Emission(self.id),
@@ -37,6 +38,7 @@ class Vehicle:
             self.route = veh['route'][:-1].split(" ")
             lane_ = veh['drivable']
             self.status = {
+                'id': self.id,
                 'lane': lane_,
                 'speed': float(veh['speed']),
                 'CO2_emission': 0,
@@ -98,6 +100,7 @@ class Vehicle:
             route = last_route
 
         self.status = {
+            'id': self.id,
             'lane': lane,
             'speed': speed,
             'CO2_emission': CO2_emission,
