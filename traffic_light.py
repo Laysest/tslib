@@ -45,6 +45,7 @@ class TrafficLight:
     '''
     def __init__(self, config=None):
         self.id = config['node_id']
+        print("Traffic Light ID: %s" % self.id)
         self.control_algorithm = config['method']
         self.yellow_duration = config['yellow_duration']
         self.cycle_control = config['cycle_control']
@@ -54,8 +55,12 @@ class TrafficLight:
             print("<<< To ensure safety, must have a yellow phase after each changing phase >>>")
             sys.exit(0)
         self.road_structure = self.getRoadStructure()
+        # print(self.road_structure)
         self.lanes_id = []
-        for road in self.road_structure.keys():
+        for road in list(self.road_structure.keys()):
+            if (self.road_structure[road] == None):
+                del self.road_structure[road]
+                continue
             self.lanes_id.extend([lane['id'] for lane in self.road_structure[road]])
 
         if self.control_algorithm == 'SOTL':
@@ -110,11 +115,11 @@ class TrafficLight:
                 des = []
                 for idx, phase in enumerate(phases):
                     tmp = []
-                    for link in links:
+                    for link_idx, link in enumerate(links):
                         tmp.append({
                             'from': link[0][0],
                             'to': link[0][1],
-                            'light_state': map_phase_state(phase.state[idx])
+                            'light_state': map_phase_state(phase.state[link_idx])
                         })
                     des.append(tmp)
                 return des
@@ -147,7 +152,7 @@ class TrafficLight:
                 
         def getNumberOfPhases(tfl_id):
             if GloVars.config['simulator'] == 'SUMO':
-                return len(traci.trafficlight.getAllProgramLogics(tfl_id)[0].getPhases())            
+                return len(traci.trafficlight.getAllProgramLogics(tfl_id)[0].getPhases())
             elif GloVars.config['simulator'] == 'CityFlow':
                 config_CF = json.load(open(GloVars.config['config_file'], 'r'))
                 road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))
@@ -245,14 +250,17 @@ class TrafficLight:
             sorted_nodes.append(selected_node)
 
             # find South node
-            min_distance, selected_node = -1, None
-            for node in incoming_nodes:
-                if node.y < center_node.y:
-                    if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
-                        min_distance = abs(center_node.x - node.x)
-                        selected_node = node
-            incoming_nodes.remove(selected_node)
-            sorted_nodes.append(selected_node)
+            # min_distance, selected_node = -1, None
+            # for node in incoming_nodes:
+            #     if node.y < center_node.y:
+            #         if min_distance == -1 or abs(center_node.x - node.x) < min_distance:
+            #             min_distance = abs(center_node.x - node.x)
+            #             selected_node = node
+            # incoming_nodes.remove(selected_node)
+            # sorted_nodes.append(selected_node)
+
+            sorted_nodes.append(incoming_nodes[0])
+            incoming_nodes.remove(incoming_nodes[0])
 
             if None in sorted_nodes:
                 print("<<<Check road structure of intersection %s >>>" % self.id)
@@ -464,7 +472,7 @@ class TrafficLight:
             'occupancy': [traci.lane.getLastStepOccupancy(lane) for lane in self.lanes_id],
             'num_vehs': [traci.lane.getLastStepVehicleNumber(lane) for lane in self.lanes_id],
             'waiting_time': [traci.lane.getWaitingTime(lane) for lane in self.lanes_id],
-            'queue_length': self.getQueueLength()
+            'queue_length': getQueueLength()
         }
         df = pd.DataFrame([log_])
         

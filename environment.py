@@ -209,7 +209,7 @@ class Environment():
             val = sum(d[metric] for d in veh_logs) / len(veh_logs)
             print("{0:20}:{1}".format(metric, val))
             self.log[ep][metric] = val
-                    
+        
         # if not os.path.exists(self.config['log_folder']):
         #     os.makedirs(self.config['log_folder'])
         # pickle.dump(self.log, open('%s/log.pkl' % self.config['log_folder'], 'wb'))

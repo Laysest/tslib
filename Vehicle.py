@@ -81,7 +81,8 @@ class Vehicle:
             distance = 0
             if speed < 0.1:
                 waiting_time = self.status['waiting_time'] + 1
-
+            else:
+                waiting_time = self.status['waiting_time']
         last_route = self.status['route'].copy()
         edge = lane[:-2]
         route = {}

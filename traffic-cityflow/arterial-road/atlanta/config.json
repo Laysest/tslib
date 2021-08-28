@@ -1,12 +1,12 @@
 {
 	"interval": 1.0,
 	"seed": 0,
-	"dir": "./traffic-cityflow/isolated-intersection/hz-bc-tyc_1/",
+	"dir": "./traffic-cityflow/arterial-road/atlanta/",
 	"roadnetFile": "roadnet.json",
 	"flowFile": "flow.json", 
 	"rlTrafficLight": true,
 	"laneChange": true,
 	"saveReplay": true,
-	"roadnetLogFile": "netLog.json",
+	"roadnetLogFile": "roadLog.json",
 	"replayLogFile": "replay.txt"
 }
