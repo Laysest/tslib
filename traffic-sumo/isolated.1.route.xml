@@ -1,0 +1,22 @@
+<routes>
+    <route id="routeSN" edges="StoC CtoN"/>
+    <route id="routeNS" edges="NtoC CtoS"/>
+    <route id="routeWE" edges="WtoC CtoE"/>
+    <route id="routeEW" edges="EtoC CtoW"/>
+
+    <flow id="03A1" type="passenger" departSpeed="5" begin="0" end="600" departSpeed="5" probability="0.05" route="routeSN" departLane="random"/>
+    <flow id="03A2" type="truck" begin="0" end="600" departSpeed="5" probability="0.005" route="routeSN" departLane="random"/>
+    <flow id="03A3" type="bus" begin="0" end="600" departSpeed="5" probability="0.005" route="routeSN" departLane="random"/>
+
+    <flow id="04A1" type="passenger" departSpeed="5" begin="0" end="600" departSpeed="5" probability="0.05" route="routeNS" departLane="random"/>
+    <flow id="04A2" type="truck" begin="0" end="600" departSpeed="5" probability="0.005" route="routeNS" departLane="random"/>
+    <flow id="04A3" type="bus" begin="0" end="600" departSpeed="5" probability="0.005" route="routeNS" departLane="random"/>
+
+    <flow id="05A1" type="passenger" departSpeed="5" begin="0" end="600" departSpeed="5" probability="0.05" route="routeWE" departLane="random"/>
+    <flow id="05A2" type="truck" begin="0" end="600" departSpeed="5" probability="0.005" route="routeWE" departLane="random"/>
+    <flow id="05A3" type="bus" begin="0" end="600" departSpeed="5" probability="0.005" route="routeWE" departLane="random"/>
+
+    <flow id="06A1" type="passenger" departSpeed="5" begin="0" end="600" departSpeed="5" probability="0.05" route="routeEW" departLane="random"/>
+    <flow id="06A2" type="truck" begin="0" end="600" departSpeed="5" probability="0.005" route="routeEW" departLane="random"/>
+    <flow id="06A3" type="bus" begin="0" end="600" departSpeed="5" probability="0.005" route="routeEW" departLane="random"/>
+</routes>
