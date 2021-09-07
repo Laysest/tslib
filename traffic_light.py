@@ -174,7 +174,7 @@ class TrafficLight:
     def getRoadStructure(self):
         class Node:
             node_id = None
-            x = None   
+            x = None
             y = None
 
         def getNodes(tfl_id):
@@ -409,9 +409,16 @@ class TrafficLight:
                 edges += node_.getIncoming()
                 for edge in edges:
                     if edge.getToNode() == center_node_:
-                        in_lanes_info = [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()} for lane in edge.getLanes()]
+                        in_lanes_info = []
+                        for lane in edge.getLanes():
+                            if len(traci.lane.getAllowed(lane.getID())) > 1:
+                                in_lanes_info.append({'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()})                        
                     if edge.getFromNode() == center_node_:
-                        out_lanes_info = [{'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()} for lane in edge.getLanes()]
+                        out_lanes_info = []
+                        for lane in edge.getLanes():
+                            if len(traci.lane.getAllowed(lane.getID())) > 1:
+                                out_lanes_info.append({'id': lane.getID(), 'length': lane.getLength(), 'max_allowed_speed': lane.getSpeed()})
+                                
             elif GloVars.config['simulator'] == 'CityFlow':
                 config_CF = json.load(open(GloVars.config['config_file'], 'r'))
                 road_structure = json.load(open(config_CF['dir'] + config_CF['roadnetFile'], 'r'))

@@ -2,7 +2,7 @@
 <!-- generated on 2021-06-28 19:08:10.169366 by randomTrips.py UNKNOWN
   options: -n most.net.xml -e 3600
 -->
-<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+<routes>
     <trip id="0" depart="0.00" from="10078#2" to="-10046#5"/>
     <trip id="1" depart="1.00" from="-10114#1" to="-10105"/>
     <trip id="2" depart="2.00" from="10108#0" to="10089#4"/>

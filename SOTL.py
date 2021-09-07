@@ -59,6 +59,8 @@ class SOTL(Controller):
         number_veh_on_green_lanes = 0
         number_veh_on_red_lanes = 0
         for lane in self.incoming_lanes:
+            if lane['id'] not in current_light_states.keys():
+                continue
             if current_light_states[lane['id']] == LightState.Green:
                 number_veh_on_green_lanes += get_number_vehicles_on_lane(state['vehicles'], lane)
 

@@ -13,7 +13,7 @@ from glo_vars import GloVars
 from VFB import VFB
 
 class IntelliLight(RLAgent):
-    def __init__(self, config, road_structure, number_of_phases):    
+    def __init__(self, config, road_structure, number_of_phases):
         self.map_size, self.center_length_WE, self.center_length_NS = VFB.getMapSize(road_structure)
         self.incoming_lanes = [lane for k, road in road_structure.items() if 'in' in k for lane in road]
         self.outgoing_lanes = [lane for k, road in road_structure.items() if 'out' in k for lane in road]
@@ -174,6 +174,7 @@ class IntelliLight(RLAgent):
         # phase vector
         light_state = {}
         phase_detail = state['phase_description'][state['current_phase_index']]
+
         for item in phase_detail:
             if item['from'] not in light_state:
                 light_state[item['from']] = 0
@@ -181,8 +182,11 @@ class IntelliLight(RLAgent):
                 light_state[item['from']] += 1
 
         for lane in self.incoming_lanes:
-            if light_state[lane['id']] > 0:
-                lane_features_.append(LightState.Green)
+            if lane['id'] in light_state.keys():
+                if light_state[lane['id']] > 0:
+                    lane_features_.append(LightState.Green)
+                else:
+                    lane_features_.append(LightState.Red)                    
             else:
                 lane_features_.append(LightState.Red)
 
