@@ -8,6 +8,7 @@ __pycache__/
 a/
 log/
 model/
+
 # Distribution / packaging
 .Python
 build/
@@ -130,11 +131,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 log/*
-!log/final/
-logs/
 model/*
-!/model/final/
 tensorboard/
 *.pkl
 log/dev/
 test.py
+manhattan.py
+class_diagram
