@@ -7,6 +7,7 @@ This framework offers training/testing Traffic Signal Controls (TSC) including b
 updating ....
 
 ## How to use:
+updating ....
 
 See in some examples.
 
