@@ -4,11 +4,10 @@ TSLib: A unified Traffic Signal Control framework using deep reinforcement learn
 This framework offers training/testing Traffic Signal Controls (TSC) including both traditional and advanced methods.
 
 ## How to install:
-updating ....
+Using docker:
+> docker pull viettoantran98/tslib
 
 ## How to use:
-updating ....
-
 See in some examples.
 
 > python3 SUMO_one_intersection_Chattanooga.py
