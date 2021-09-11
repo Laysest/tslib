@@ -5,7 +5,7 @@ This framework offers training/testing Traffic Signal Controls (TSC) including b
 
 ## How to install:
 Using docker:
-> docker pull viettoantran98/tslib
+> docker pull viettoantran98/tslib:0.0.1
 
 ## How to use:
 See in some examples.
