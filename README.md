@@ -31,8 +31,9 @@ If you use the framework, please cite our paper:
 
 <li> S. Mousavi, M. Schukat, P. Corcoran, and E. Howley, “Traffic Light Control Using Deep Policy-Gradient and Value-Function Based Reinforcement Learning,”IETIntelligent Transport Systems, vol. 11, 2017.
    
-<li> Krajzewicz, D., Hertkorn, G., Ringel, J., & Wagner, P. (2005). Preparation of digital maps for traffic simulation; Part 1: Approach and algorithms. 3rd International Industrial Simulation Conference 2005, ISC 2005, 285–290.
-
+<!-- <li> Krajzewicz, D., Hertkorn, G., Ringel, J., & Wagner, P. (2005). Preparation of digital maps for traffic simulation; Part 1: Approach and algorithms. 3rd International Industrial Simulation Conference 2005, ISC 2005, 285–290.
+ -->
+    
 <li> H. Wei, G. Zheng, H. Yao, and Z. Li, “Intellilight: A reinforcement learning approachfor intelligent traffic light control,” inProceedings of the 24th ACM SIGKDD Inter-national Conference on Knowledge Discovery & Data Mining, pp. 2496–2505, ACM,2018.
 
 <li> X. Liang, X. Du, G. Wang, and Z. Han, “A deep reinforcement learning network fortraffic light cycle control,”IEEE Transactions on Vehicular Technology, vol. 68, no. 2,pp. 1243–1253, 2019
