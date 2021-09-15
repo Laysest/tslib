@@ -14,7 +14,7 @@ See in some examples.
 
 You can custom your own traffic networks (in both SUMO and CityFlow) if you want.
 
-The detailed document will be released soon.
+> The detailed document will be released soon.
 
 If you use the framework, please cite our paper:
 ```
