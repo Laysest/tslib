@@ -7,6 +7,9 @@ This framework offers training/testing Traffic Signal Controls (TSC) including b
 Using docker:
 > docker pull viettoantran98/tslib:0.0.1
 
+Clone the updated source:
+> git clone https://github.com/Laysest/tslib
+
 ## How to use:
 See in some examples.
 
@@ -14,7 +17,7 @@ See in some examples.
 
 You can custom your own traffic networks (in both SUMO and CityFlow) if you want.
 
-> The detailed document will be released soon.
+> The detailed document will be released **in this month Nov**
 
 If you use the framework, please cite our paper:
 ```
