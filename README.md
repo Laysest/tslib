@@ -12,12 +12,13 @@ Clone the updated source:
 
 ## How to use:
 See in some examples.
+The detailed document will be released **in this month Nov**
+
 
 > python3 SUMO_one_intersection_Chattanooga.py
 
-You can custom your own traffic networks (in both SUMO and CityFlow) if you want.
+You can custom your own traffic networks (in both SUMO and CityFlow), i.e., the variable named config, same to the example..
 
-> The detailed document will be released **in this month Nov**
 
 If you use the framework, please cite our paper:
 ```
