@@ -1,7 +1,9 @@
-# tslib
-TSLib: A unified Traffic Signal Control framework using deep reinforcement learning and Benchmarking 
+# TSLib: A unified Traffic Signal Control framework using deep reinforcement learning and Benchmarking 
 
 This framework offers training/testing Traffic Signal Controls (TSC) including both traditional and advanced methods.
+
+## Class diagram:
+
 
 ## How to install:
 Using docker:
@@ -80,9 +82,14 @@ Where:
 
 If you use the framework, please cite our paper:
 ```
-{
-    @article: 
-}
+@INPROCEEDINGS{9671993,
+  author={Tran, Toan V. and Doan, Thanh-Nam and Sartipi, Mina},
+  booktitle={2021 IEEE International Conference on Big Data (Big Data)}, 
+  title={TSLib: A Unified Traffic Signal Control Framework Using Deep Reinforcement Learning and Benchmarking}, 
+  year={2021},
+  pages={1739-1747},
+  doi={10.1109/BigData52589.2021.9671993}}
+
 ```
 
 ## Available TSC methods:
