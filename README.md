@@ -3,7 +3,10 @@
 This framework offers training/testing Traffic Signal Controls (TSC) including both traditional and advanced methods.
 
 ## Class diagram:
+![Alt text](class_diagram.png?raw=true "TSLIB's Class Diagram")
 
+## Result:
+![Alt text](result.png?raw=true "TSLIB for intersections at Monaco")
 
 ## How to install:
 Using docker:
