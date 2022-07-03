@@ -1,5 +1,7 @@
 # TSLib: A unified Traffic Signal Control framework using deep reinforcement learning and Benchmarking 
 
+*Feel free to reach me at toan.tranviet@ieee.org if you have any issues or need help to run the code*
+
 This framework offers training/testing Traffic Signal Controls (TSC) including both traditional and advanced methods.
 
 ## Class diagram:
