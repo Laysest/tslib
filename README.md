@@ -85,7 +85,7 @@ Where:
 * 'config_file': the configuration of your simulation, including information of road structures and workloads
 
 
-If you use the framework, please cite our paper:
+Please refer to our work:
 ```
 @INPROCEEDINGS{9671993,
   author={Tran, Toan V. and Doan, Thanh-Nam and Sartipi, Mina},
